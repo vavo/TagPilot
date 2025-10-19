@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TagPilot - dataset tagger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="config.js"></script> <!-- Loads the API key from your local, untracked config file -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple scrollbar styling for a more modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #2d3748;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #5a67d8;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Cropper.js modal background */
+        .cropper-container {
+            margin: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Notification Element -->
+    <div id="notification" class="hidden fixed top-5 right-5 bg-yellow-500 text-gray-900 py-3 px-5 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full">
+        <p id="notification-text"></p>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">LoRA Dataset Tagger</h1>
+            <p class="text-lg text-gray-400">A simple tool to create and manage tags for your training datasets.</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-white">1. Load Your Dataset</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                
+                <!-- Upload Photos -->
+                <div>
+                    <label for="image-upload" class="w-full h-full flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-indigo-600 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-all">
+                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="font-semibold">Upload Photos</span>
+                        <span class="text-sm text-gray-400">Select individual image files</span>
+                    </label>
+                    <input id="image-upload" type="file" class="hidden" multiple accept="image/png, image/jpeg, image/webp">
+                </div>
+
+                <!-- Upload ZIP -->
+                <div>
+                    <label for="zip-upload" class="w-full h-full flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-indigo-600 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-all">
+                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="font-semibold">Upload ZIP Dataset</span>
+                        <span class="text-sm text-gray-400">.zip file with images and .txt files</span>
+                     </label>
+                    <input id="zip-upload" type="file" class="hidden" accept=".zip">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar & Tagger Section -->
+        <div id="tagger-section" class="hidden">
+            <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 flex-wrap">
+                    <h2 class="text-2xl font-semibold text-white">2. Edit Tags</h2>
+                    <div class="flex items-center gap-4 flex-wrap justify-center">
+                        <button id="reset-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
+                            Reset
+                        </button>
+                        <div>
+                            <label for="dataset-name-input" class="text-sm mr-2">Dataset Name:</label>
+                            <input type="text" id="dataset-name-input" placeholder="e.g. myperson" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <button id="autotag-all-button" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">Auto-tag All</button>
+                        <button id="export-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
+                            Export as ZIP
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Grid -->
+            <div id="image-grid" class="grid grid-cols-1 gap-6">
+                <!-- Image cards will be dynamically inserted here -->
+            </div>
+             <div id="placeholder" class="text-center py-20 bg-gray-800 rounded-lg">
+                <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-300">No images loaded</h3>
+                <p class="mt-1 text-sm text-gray-500">Upload some photos or a ZIP file to get started.</p>
+            </div>
+        </div>
+
+        <!-- Tag Summary Section -->
+        <div id="tag-summary-section" class="hidden mt-8">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-white">3. Tag Summary</h2>
+                <div id="tag-summary-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-3 max-h-96 overflow-y-auto">
+                    <!-- Tag counts will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Loader Overlay -->
+        <div id="loader" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="flex flex-col items-center">
+                 <svg class="animate-spin h-10 w-10 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p id="loader-text" class="text-white text-lg">Processing ZIP file...</p>
+            </div>
+        </div>
+
+        <!-- Image Preview Modal -->
+        <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+            <img id="preview-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
+            <button id="preview-close" class="absolute top-4 right-4 text-white text-4xl font-bold">&times;</button>
+        </div>
+
+        <!-- Cropper Modal -->
+        <div id="crop-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center z-50 p-4">
+            <div class="w-full max-w-4xl h-4/5">
+                <img id="crop-image" src="" class="max-w-full max-h-full">
+            </div>
+            <div class="mt-4 flex gap-4">
+                <button id="crop-save" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg">Save Crop</button>
+                <button id="crop-cancel" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM element references
+        const imageUpload = document.getElementById('image-upload');
+        const zipUpload = document.getElementById('zip-upload');
+        const imageGrid = document.getElementById('image-grid');
+        const placeholder = document.getElementById('placeholder');
+        const taggerSection = document.getElementById('tagger-section');
+        const exportButton = document.getElementById('export-button');
+        const resetButton = document.getElementById('reset-button');
+        const autotagAllButton = document.getElementById('autotag-all-button');
+        const datasetNameInput = document.getElementById('dataset-name-input');
+        
+        const loader = document.getElementById('loader');
+        const loaderText = document.getElementById('loader-text');
+        const previewModal = document.getElementById('preview-modal');
+        const previewImage = document.getElementById('preview-image');
+        const previewClose = document.getElementById('preview-close');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+        const tagSummarySection = document.getElementById('tag-summary-section');
+
+        // Cropper elements
+        const cropModal = document.getElementById('crop-modal');
+        const cropImage = document.getElementById('crop-image');
+        const cropSaveButton = document.getElementById('crop-save');
+        const cropCancelButton = document.getElementById('crop-cancel');
+        let cropper = null;
+        let currentCropIndex = -1;
+
+        // Global state to hold file data
+        let dataset = []; // Array of { file: File, tags: string }
+
+        // --- Event Listeners ---
+        imageUpload.addEventListener('change', handleImageUpload);
+        zipUpload.addEventListener('change', handleZipUpload);
+        exportButton.addEventListener('click', handleExport);
+        resetButton.addEventListener('click', handleReset);
+        autotagAllButton.addEventListener('click', handleAutoTagAll);
+        previewClose.addEventListener('click', hidePreview);
+        previewModal.addEventListener('click', (e) => {
+            if (e.target === previewModal) {
+                hidePreview();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (!previewModal.classList.contains('hidden')) hidePreview();
+                if (!cropModal.classList.contains('hidden')) cancelCrop();
+            }
+        });
+        cropSaveButton.addEventListener('click', saveCrop);
+        cropCancelButton.addEventListener('click', cancelCrop);
+
+
+        /**
+         * Handles the selection of individual image files.
+         */
+        async function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+            showLoader('Processing & checking for duplicates...');
+
+            // Get hashes of existing images
+            const existingHashes = new Set(await Promise.all(dataset.map(item => calculateFileHash(item.file))));
+            const newDatasetItems = [];
+            const duplicatesFound = [];
+
+            for (const file of files) {
+                const hash = await calculateFileHash(file);
+                if (existingHashes.has(hash)) {
+                    duplicatesFound.push(file.name);
+                    continue;
+                }
+
+                let finalFile = file;
+                if (file.name.toLowerCase().endsWith('.jpeg')) {
+                    const newName = file.name.slice(0, -5) + '.jpg';
+                    finalFile = new File([file], newName, { type: 'image/jpeg' });
+                }
+                newDatasetItems.push({ file: finalFile, tags: '' });
+                existingHashes.add(hash); // Add to set to detect duplicates within the same upload
+            }
+            
+            dataset.push(...newDatasetItems); // Append new items instead of replacing
+            hideLoader();
+
+            if (duplicatesFound.length > 0) {
+                showNotification(`Skipped ${duplicatesFound.length} duplicate image(s).`);
+            }
+            render();
+        }
+
+        /**
+         * Handles the upload of a ZIP file, processing its contents.
+         */
+        async function handleZipUpload(event) {
+            const zipFile = event.target.files[0];
+            if (!zipFile) return;
+
+            showLoader('Processing ZIP & checking for duplicates...');
+            
+            try {
+                const jszip = new JSZip();
+                const zip = await jszip.loadAsync(zipFile);
+                
+                const imageFiles = {};
+                const textFiles = {};
+                const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+
+                for (const filename in zip.files) {
+                    if (zip.files[filename].dir) continue;
+                    const file = zip.files[filename];
+                    const lowerFilename = filename.toLowerCase();
+                    const extension = lowerFilename.substring(lowerFilename.lastIndexOf('.'));
+                    const baseName = filename.substring(0, filename.lastIndexOf('.'));
+
+                    if (imageExtensions.includes(extension)) {
+                        imageFiles[baseName] = { file, originalName: filename };
+                    } else if (extension === '.txt') {
+                        textFiles[baseName] = file;
+                    }
+                }
+
+                const existingHashes = new Set(await Promise.all(dataset.map(item => calculateFileHash(item.file))));
+                const newDatasetItems = [];
+                const duplicatesFound = [];
+
+                for (const baseName in imageFiles) {
+                    const { file: imageZipObject, originalName } = imageFiles[baseName];
+                    const imageBlob = await imageZipObject.async('blob');
+                    
+                    let finalName = originalName;
+                    if (originalName.toLowerCase().endsWith('.jpeg')) {
+                        finalName = originalName.slice(0, -5) + '.jpg';
+                    }
+                    const imageFile = new File([imageBlob], finalName, { type: imageBlob.type });
+
+                    const hash = await calculateFileHash(imageFile);
+                    if (existingHashes.has(hash)) {
+                        duplicatesFound.push(originalName);
+                        continue;
+                    }
+
+                    let tags = '';
+                    if (textFiles[baseName]) {
+                        tags = await textFiles[baseName].async('string');
+                    }
+                    newDatasetItems.push({ file: imageFile, tags: tags.trim() });
+                    existingHashes.add(hash); // Add to set to detect duplicates within the same upload
+                }
+                
+                dataset.push(...newDatasetItems);
+                render();
+
+                if (duplicatesFound.length > 0) {
+                    showNotification(`Skipped ${duplicatesFound.length} duplicate image(s) from ZIP.`);
+                }
+
+            } catch (error) {
+                console.error("Error processing ZIP file:", error);
+                showNotification("Error processing ZIP. See console for details.", 5000, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        /**
+         * Resets the entire application state.
+         */
+        function handleReset() {
+            dataset = [];
+            imageUpload.value = '';
+            zipUpload.value = '';
+            datasetNameInput.value = '';
+            render();
+        }
+
+        /**
+         * Removes a specific image from the dataset.
+         */
+        function removeImage(indexToRemove) {
+            dataset.splice(indexToRemove, 1);
+            render();
+        }
+
+        /**
+         * Updates the tags string for a specific image based on an array of tags.
+         */
+        function updateTags(index, tagsArray) {
+            if (dataset[index]) {
+                dataset[index].tags = tagsArray.join(', ');
+            }
+            renderTagSummary(); // Update summary whenever tags change
+        }
+        
+        /**
+         * Renders the image grid based on the current dataset state.
+         */
+        function render() {
+            imageGrid.innerHTML = '';
+
+            if (dataset.length > 0) {
+                taggerSection.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                imageGrid.classList.remove('hidden');
+
+                dataset.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-800 rounded-lg shadow-md overflow-hidden flex h-72 items-center';
+                    card.id = `card-${index}`;
+
+                    const imageUrl = URL.createObjectURL(item.file);
+
+                    card.innerHTML = `
+                        <div class="p-4 h-full flex items-center justify-center">
+                            <span class="text-2xl font-bold text-gray-500">${index + 1}</span>
+                        </div>
+                        <div class="w-2/5 flex-shrink-0 cursor-pointer thumbnail-container h-full">
+                            <img src="${imageUrl}" alt="${item.file.name}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow min-w-0 h-full">
+                            <p class="text-xs text-gray-400 mb-2" id="resolution-${index}">...</p>
+                            <div class="flex flex-grow gap-3 min-h-0">
+                                <div class="tag-area-wrapper w-full flex-grow bg-gray-700 border border-gray-600 rounded-md p-2 flex flex-wrap items-start content-start gap-2 overflow-y-auto" data-index="${index}">
+                                    <!-- Tags will be dynamically inserted here -->
+                                </div>
+                                <div class="flex flex-col gap-2 flex-shrink-0">
+                                    <button class="crop-btn w-full flex items-center justify-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span>Crop</span>
+                                    </button>
+                                     <button class="autotag-single-button w-full flex items-center justify-center gap-2 text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                        </svg>
+                                        <span>Tag</span>
+                                    </button>
+                                    <button class="remove-btn w-full flex items-center justify-center gap-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>Remove</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Asynchronously get and display image resolution
+                    const resEl = card.querySelector(`#resolution-${index}`);
+                    const img = new Image();
+                    img.onload = () => {
+                        resEl.textContent = `${img.naturalWidth} x ${img.naturalHeight}`;
+                    };
+                    img.src = imageUrl;
+                    
+                    const tagAreaWrapper = card.querySelector('.tag-area-wrapper');
+                    renderTagsInCard(tagAreaWrapper, index);
+
+                    card.querySelector('.remove-btn').addEventListener('click', (e) => removeImage(index));
+                    card.querySelector('.thumbnail-container').addEventListener('click', () => showPreview(imageUrl));
+                    card.querySelector('.autotag-single-button').addEventListener('click', (e) => handleAutoTag(index));
+                    card.querySelector('.crop-btn').addEventListener('click', () => startCropping(index));
+
+                    imageGrid.appendChild(card);
+                });
+            } else {
+                taggerSection.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                imageGrid.classList.add('hidden');
+            }
+            renderTagSummary(); // Initial summary render or clear
+        }
+        
+        /**
+         * Renders the individual tags and the input field inside a card.
+         */
+        function renderTagsInCard(container, index) {
+            container.innerHTML = ''; // Clear previous content
+            const tags = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+            tags.forEach(tag => {
+                const tagEl = document.createElement('div');
+                tagEl.className = 'flex items-center bg-indigo-500 text-white text-xs px-2 py-1 rounded-full';
+                tagEl.innerHTML = `
+                    <span>${tag}</span>
+                    <button class="ml-2 text-indigo-100 hover:text-white remove-tag-btn">&times;</button>
+                `;
+                tagEl.querySelector('.remove-tag-btn').addEventListener('click', () => {
+                    const newTags = tags.filter(t => t !== tag);
+                    updateTags(index, newTags);
+                    renderTagsInCard(container, index); // Re-render just the tags for this card
+                });
+                container.appendChild(tagEl);
+            });
+
+            const inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.placeholder = 'Add tag...';
+            inputEl.className = 'bg-transparent text-sm flex-grow p-1 focus:outline-none min-w-[80px]';
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    const newTag = inputEl.value.trim();
+                    if (newTag && !tags.includes(newTag)) {
+                        const newTags = [...tags, newTag];
+                        updateTags(index, newTags);
+                        renderTagsInCard(container, index);
+                    }
+                    inputEl.value = '';
+                }
+            });
+            container.appendChild(inputEl);
+        }
+
+        /**
+         * Renders the tag summary section based on the current dataset.
+         */
+        function renderTagSummary() {
+            const summaryList = document.getElementById('tag-summary-list');
+            if (dataset.length === 0) {
+                tagSummarySection.classList.add('hidden');
+                summaryList.innerHTML = '';
+                return;
+            }
+
+            tagSummarySection.classList.remove('hidden');
+            
+            const tagCounts = {};
+            for (const item of dataset) {
+                const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+                for (const tag of tags) {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                }
+            }
+
+            const sortedTags = Object.entries(tagCounts).sort(([, a], [, b]) => b - a);
+
+            summaryList.innerHTML = ''; // Clear previous summary
+            if (sortedTags.length === 0) {
+                summaryList.innerHTML = '<p class="text-gray-500 col-span-full">No tags have been added yet.</p>';
+                return;
+            }
+
+            sortedTags.forEach(([tag, count]) => {
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'flex justify-between items-baseline text-sm';
+                summaryItem.innerHTML = `
+                    <span class="text-gray-300 truncate pr-2" title="${tag}">${tag}</span>
+                    <span class="font-semibold text-indigo-400">${count}</span>
+                `;
+                summaryList.appendChild(summaryItem);
+            });
+        }
+
+        /**
+         * Handles the export of the dataset as a new ZIP file.
+         */
+        async function handleExport() {
+            if (dataset.length === 0) {
+                console.log("No data to export!");
+                return;
+            }
+            
+            const nameOfTheDataset = datasetNameInput.value.trim().replace(/[^a-zA-Z0-9_-]/g, '') || 'dataset';
+            if (!nameOfTheDataset) {
+                console.log("Please enter a dataset name.");
+                datasetNameInput.focus();
+                datasetNameInput.classList.add('ring-2', 'ring-red-500');
+                setTimeout(() => datasetNameInput.classList.remove('ring-2', 'ring-red-500'), 2000);
+                return;
+            }
+
+            showLoader('Zipping files...');
+            try {
+                const zip = new JSZip();
+                const folder = zip.folder(`1_${nameOfTheDataset}`);
+
+                dataset.forEach((item, index) => {
+                    const fileNumber = String(index + 1).padStart(3, '0');
+                    const newBaseName = `${nameOfTheDataset}${fileNumber}`;
+                    const newImageName = `${newBaseName}.jpg`;
+                    const newTxtName = `${newBaseName}.txt`;
+                    
+                    folder.file(newImageName, item.file);
+                    if (item.tags.trim() !== '') {
+                        folder.file(newTxtName, item.tags);
+                    }
+                });
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipBlob);
+                link.download = `data-${nameOfTheDataset}.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+
+            } catch (error) {
+                console.error("Error exporting ZIP file:", error);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // --- Auto-tagging Functions ---
+
+        /**
+         * Triggers auto-tagging for all images in the dataset sequentially.
+         */
+        async function handleAutoTagAll() {
+            showLoader('Auto-tagging untagged images...');
+            const taggingPromises = [];
+            for (let i = 0; i < dataset.length; i++) {
+                if (dataset[i].tags.trim() === '') {
+                    taggingPromises.push(handleAutoTag(i));
+                }
+            }
+
+            if (taggingPromises.length === 0) {
+                showNotification("All images are already tagged.", 3000);
+                hideLoader();
+                return;
+            }
+            
+            await Promise.all(taggingPromises);
+            hideLoader();
+        }
+
+        /**
+         * Handles auto-tagging for a single image by its index.
+         */
+        async function handleAutoTag(index) {
+            const button = document.querySelector(`.autotag-single-button[data-index='${index}']`);
+            if (!button) return;
+
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<div class="spinner"></div>';
+            button.disabled = true;
+
+            try {
+                const file = dataset[index].file;
+                const base64Data = await imageToBase64(file);
+                const generatedTagsString = await generateTagsWithGemini(base64Data, file.type);
+                
+                if (generatedTagsString) {
+                    const existingTags = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+                    const newTags = generatedTagsString.split(',').map(t => t.trim()).filter(Boolean);
+                    
+                    let combinedTags = [...new Set([...existingTags, ...newTags])]; // Combine and remove duplicates
+
+                    // Add dataset name as the first tag
+                    const datasetName = datasetNameInput.value.trim();
+                    if (datasetName) {
+                        // Remove if it exists, then add to the front to ensure it's first
+                        combinedTags = combinedTags.filter(t => t.toLowerCase() !== datasetName.toLowerCase());
+                        combinedTags.unshift(datasetName);
+                    }
+                    
+                    if (combinedTags.length > 30) {
+                        combinedTags = combinedTags.slice(0, 30);
+                    }
+
+                    updateTags(index, combinedTags);
+                    
+                    const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
+                    if (tagAreaWrapper) {
+                        renderTagsInCard(tagAreaWrapper, index);
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to auto-tag image ${index}:`, error);
+            } finally {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        }
+
+        // --- Cropping Functions ---
+
+        /**
+         * Initializes the cropping modal for a specific image.
+         */
+        function startCropping(index) {
+            currentCropIndex = index;
+            const file = dataset[index].file;
+            const imageUrl = URL.createObjectURL(file);
+            
+            cropImage.src = imageUrl;
+            cropModal.classList.remove('hidden');
+
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 1,
+                viewMode: 1,
+                background: false,
+                autoCropArea: 0.8,
+            });
+        }
+
+        /**
+         * Saves the cropped image and updates the dataset.
+         */
+        function saveCrop() {
+            if (!cropper || currentCropIndex < 0) return;
+
+            showLoader('Cropping image...');
+            const originalFile = dataset[currentCropIndex].file;
+
+            cropper.getCroppedCanvas().toBlob(async (blob) => {
+                const newFile = new File([blob], originalFile.name, { type: 'image/jpeg' });
+                dataset[currentCropIndex].file = newFile;
+                
+                // Clean up cropper instance
+                cropper.destroy();
+                cropper = null;
+                cropImage.src = '';
+                cropModal.classList.add('hidden');
+                currentCropIndex = -1;
+                
+                hideLoader();
+                render(); // Re-render the grid to show the new thumbnail
+            }, 'image/jpeg', 0.95);
+        }
+
+        /**
+         * Cancels the cropping operation.
+         */
+        function cancelCrop() {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            cropImage.src = '';
+            cropModal.classList.add('hidden');
+            currentCropIndex = -1;
+        }
+
+
+        /**
+         * Converts an image file to a base64 string.
+         * @param {File} file The image file to convert.
+         * @returns {Promise<string>} A promise that resolves with the base64 data string.
+         */
+        function imageToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /**
+     * Calculates the SHA-256 hash of a file.
+     * @param {File} file The file to hash.
+     * @returns {Promise<string>} A promise that resolves with the hex string of the hash.
+     */
+    async function calculateFileHash(file) {
+        const buffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+        
+    /**
+     * Calls the Gemini API to generate tags for an image.
+     * @param {string} base64ImageData The base64-encoded image data.
+         * @param {string} mimeType The MIME type of the image.
+         * @returns {Promise<string|null>} A promise that resolves with the generated tags or null on failure.
+         */
+        async function generateTagsWithGemini(base64ImageData, mimeType) {
+            if (typeof userApiKey === 'undefined' || !userApiKey) {
+                showNotification("API Key is missing. Please add it to config.js.", 5000, true);
+                throw new Error("API Key is missing.");
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
+
+            const systemPrompt = `You are an expert assistant for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
+Follow these rules strictly:
+1.  **Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
+2.  **Avoid Noise:** Do NOT use generic, low-impact tags like 'solo', '1girl', 'looking at viewer', 'realistic', 'photorealistic'.
+3.  **Prioritize Impact:** List the most descriptive and important tags first.
+4.  **Balance Character and Context:** Aim for approximately two-thirds of the tags describing the character (person, clothing, hair, accessories) and one-third describing the background, composition, and lighting (e.g., 'outdoors', 'city street at night', 'soft lighting').
+5.  **Be Concise and Specific:** Avoid redundant tags. For example, use 'blue eyes' instead of 'blue color, eyes'.
+
+The final output MUST be a comma-separated list of tags.`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: systemPrompt },
+                        { inlineData: { mimeType: mimeType, data: base64ImageData } }
+                    ]
+                }]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}: ${await response.text()}`);
+                }
+                
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    let tags = text.trim().split(',').map(t => t.trim()).filter(Boolean);
+                    if (tags.length > 30) {
+                        tags = tags.slice(0, 30);
+                    }
+                    return tags.join(', ');
+                }
+                return null;
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                return null;
+            }
+        }
+
+
+        // --- UI Helper Functions ---
+
+        /**
+         * Shows the full-screen image preview.
+         */
+        function showPreview(imageUrl) {
+            previewImage.src = imageUrl;
+            previewModal.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the full-screen image preview.
+         */
+        function hidePreview() {
+            previewImage.src = '';
+            previewModal.classList.add('hidden');
+        }
+        
+        /**
+         * Shows a notification message to the user.
+         */
+        function showNotification(message, duration = 4000, isError = false) {
+            notificationText.textContent = message;
+            notification.classList.toggle('bg-red-600', isError);
+            notification.classList.toggle('bg-yellow-500', !isError);
+            notification.classList.remove('hidden', 'translate-x-full');
+
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, duration);
+        }
+
+        /**
+         * Shows the loader overlay with a custom message.
+         */
+        function showLoader(message) {
+            loaderText.textContent = message;
+            loader.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the loader overlay.
+         */
+        function hideLoader() {
+            loader.classList.add('hidden');
+        }
+
+        // Initial render (shows the placeholder)
+        render();
+
+    </script>
+</body>
+</html>
+
