@@ -1,6 +1,6 @@
 # **TagPilot**
 
-**A powerful, browser-based tool for creating and managing training datasets for AI image generation, specifically for technologies like LoRA.**
+**A powerful, browser-based tool for creating and managing training datasets for AI image generation, specifically for technologies like LoRA training.**
 
 TagPilot streamlines the tedious process of preparing images for training by providing a suite of powerful, client-side tools, including AI-powered auto-tagging, duplicate detection, and a robust image editor. It runs entirely in your browser, keeping your data private and secure.
 
@@ -22,14 +22,11 @@ Getting TagPilot running is simple. Since it's a client-side application, there 
 **Clone the Repository**  
 git clone \[https://github.com/vavo/TagPilot.git\](https://github.com/vavo/TagPilot.git)  
 cd TagPilot
-
-1.   
-2. **Create Your Configuration File** This project uses a local, untracked `config.js` file to keep your API key secure.
-
-Copy the example file:  
+   
+1. **Create Your Configuration File** This project uses a local, untracked `config.js` file to keep your API key secure.
+2. Copy the example file:  
 cp config.example.js config.js
-
-*   
+   
 3. **Add Your API Key**  
    * Get a free Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
@@ -37,9 +34,12 @@ Open the `config.js` file you just created and paste your API key into the `user
 // config.js  
 const userApiKey \= "YOUR\_GEMINI\_API\_KEY\_GOES\_HERE";
 
-*   
 4. **Run the Application**  
-   * Simply open the `lora_dataset_tagger.html` file in your web browser. That's it\!
+   * Simply open the `tagpilot.html` file in your web browser. That's it\!
+   * Alternately you can use Python to create a webserver on some port - for example:
+     python -m http.server 3333
+
+     then access your TagPilot at http://localhost:3333/tagpilot.html
 
 ## **Usage Workflow**
 
