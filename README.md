@@ -1,4 +1,4 @@
-# **TagPilot **
+# **TagPilot**
 
 **A powerful, browser-based tool for creating and managing training datasets for AI image generation, specifically for technologies like LoRA.**
 
