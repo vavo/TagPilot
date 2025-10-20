@@ -20,7 +20,7 @@ TagPilot streamlines the tedious process of preparing images for training by pro
 Getting TagPilot running is simple. Since it's a client-side application, there is no server to set up.
 
 **Clone the Repository**  
-git clone \[https://github.com/vavo/TagPilot.git\](https://github.com/vavo/TagPilot.git)  
+git clone https://github.com/vavo/TagPilot.git
 cd TagPilot
    
 1. **Create Your Configuration File** This project uses a local, untracked `config.js` file to keep your API key secure.
