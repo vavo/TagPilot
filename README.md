@@ -3,6 +3,8 @@
 **A powerful, browser-based tool for creating and managing training datasets for AI image generation, specifically for technologies like LoRA.**  
 TagPilot streamlines the tedious process of preparing images for training by providing a suite of powerful, client-side tools, including AI-powered auto-tagging, duplicate detection, and a robust image editor. It runs entirely in your browser, keeping your data private and secure.
 
+![TagPilot UI]([https://example.com/logo.png](https://ibb.co/jkxRqxhB))
+
 ## **Key Features**
 
 * **Flexible Uploads**: Load individual images or upload a complete dataset (images \+ existing .txt tags) in a .zip file. You can add more files incrementally at any time.  
