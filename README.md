@@ -1,7 +1,7 @@
 # **TagPilot ✈️**
 
 **A powerful, browser-based tool for creating and managing training datasets for AI image generation, specifically for technologies like LoRA.**  
-TagPilot streamlines the tedious process of preparing images for training by providing a suite of powerful, client-side tools, including AI-powered auto-tagging, duplicate detection, and a robust image editor. It runs entirely in your browser, keeping your data private and secure.
+TagPilot streamlines the tedious process of preparing images for training by providing a suite of powerful, client-side tools, including AI-powered auto-tagging, auto-captioning, duplicate detection, and a robust image editor. It runs entirely in your browser, keeping your data private and secure.
 
 ![TagPilot UI](https://i.ibb.co/whbs8by3/tagpilot-gui.png)
 
@@ -9,12 +9,13 @@ TagPilot streamlines the tedious process of preparing images for training by pro
 
 * **Flexible Uploads**: Load individual images or upload a complete dataset (images \+ existing .txt tags) in a .zip file. You can add more files incrementally at any time.  
 * **Global Trigger Word**: Easily set a trigger word that is automatically applied as the first tag to every image in your dataset.  
-* **Smart AI Auto-Tagging**: Uses the **Google Gemini API** (specifically the latest 2.5 Flash model) to generate high-quality tags.  
+* **Smart AI Auto-Tagging**: Uses the **Google Gemini API** (specifically the latest 2.5 Flash model) to generate high-quality tags.  (Easy to change the API endpoint to work with any other LLM model like Grok or DeepSeek (for NSFW support)
   * **Batch Control**: Choose to **Ignore**, **Append to**, or **Overwrite** existing tags.  
   * **Progress Tracking**: Includes a progress bar and a "Stop" button to cancel the process if needed.  
 * **Advanced Tag Viewer**: A collapsible panel that shows every tag used in your dataset along with its frequency.  
   * **Global Delete**: Click the x on any tag in the viewer to instantly remove it from **every image** in the dataset.  
-* **Interactive Tag Editor**: Manage tags on individual images using a clean, interactive interface.  
+* **Interactive Tag Editor**: Manage tags on individual images using a clean, interactive interface.
+* **AI Auto-Captioning**: Added support for captions with an option to edit or fully replace the system prompt.
 * **Free-Form Cropping**: Built-in cropper allows you to adjust the composition of your images with any aspect ratio (not locked to square).  
 * **Secure Duplicate Detection**: Identifies and skips duplicate images based on their content (hash), not their filename. This process is done **100% locally**.  
 * **Structured Export**: Downloads your completed dataset as a .zip file, perfectly structured for training tools like Kohya\_ss (1\_datasetname/datasetname001.jpg, datasetname001.txt, etc.).  
@@ -53,12 +54,16 @@ Getting TagPilot running is simple. Since it's a client-side application, there 
 3. **Set Dataset Name**: Enter the filename prefix for your export (e.g., my-lora-v1).  
 4. **Auto-Tag**: Click **"Tag All"** to open the batch settings:  
    * Set the maximum number of tags per image.  
-   * Choose how to handle existing tags: **Ignore** (skip tagged), **Append** (add new tags), or **Overwrite** (replace all tags).  
-5. **Review & Refine**:  
+   * Choose how to handle existing tags: **Ignore** (skip tagged), **Append** (add new tags), or **Overwrite** (replace all tags).
+5. **Auto-Caption**: Click **"Caption All"** to open the batch settings:  
+   * Set the maximum number of words per image.  
+   * Choose how to handle existing captions: **Ignore** (skip existing captions), **Append** (add new caption - avoiding duplicity), or **Overwrite** (replace all captions).
+   * You can also edit or fully replace the system prompt.  
+6. **Review & Refine**:  
    * Use the **Tag Viewer** at the bottom to see tag distribution. Remove unwanted tags globally by clicking them.  
    * Manually edit tags on specific cards if needed.  
    * Use the **Crop** button to adjust image framing.  
-6. **Export**: Click **"Export as ZIP"** to download your production-ready dataset.
+7. **Export**: Click **"Export as ZIP"** to download your production-ready dataset.
 
 ## **Technology Stack**
 
