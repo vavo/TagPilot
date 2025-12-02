@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TagPilot: LoRA Dataset Tagger</title>
+    <title>TagPilot ✈️</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -137,22 +137,27 @@
                     <h2 class="text-2xl font-semibold text-white">2. Edit Tags</h2>
                     <div class="flex items-center gap-4 flex-wrap justify-center w-full sm:w-auto">
                         <button id="reset-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
-                            Reset
+                            Reset All
                         </button>
                         
+                        <button id="clear-tags-button" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
+                            Clear Tags
+                        </button>
+
                         <!-- Trigger Word Input -->
                         <div class="relative flex items-center">
                             <span class="absolute left-3 text-gray-400 text-sm">Trigger Word:</span>
-                            <input type="text" id="trigger-word-input" placeholder="e.g. ohwx man" class="bg-gray-700 border border-gray-600 rounded-md py-2 pl-24 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48 sm:w-64">
+                            <input type="text" id="trigger-word-input" placeholder="e.g. ohwx man" class="bg-gray-700 border border-gray-600 rounded-md py-2 pl-24 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40 sm:w-48">
                         </div>
 
                         <!-- Dataset Name Input (For export filename) -->
                         <div class="relative flex items-center">
                             <span class="absolute left-3 text-gray-400 text-sm">Dataset Name:</span>
-                            <input type="text" id="dataset-name-input" placeholder="filename" class="bg-gray-700 border border-gray-600 rounded-md py-2 pl-28 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48 sm:w-64">
+                            <input type="text" id="dataset-name-input" placeholder="filename" class="bg-gray-700 border border-gray-600 rounded-md py-2 pl-28 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40 sm:w-48">
                         </div>
 
                         <button id="tag-all-button" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">Tag All</button>
+                        <button id="caption-all-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">Caption All</button>
                         <button id="export-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
                             Export as ZIP
                         </button>
@@ -182,7 +187,7 @@
             </div>
              <div id="placeholder" class="text-center py-20 bg-gray-800 rounded-lg">
                 <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
                 <h3 class="mt-2 text-sm font-medium text-gray-300">No images loaded</h3>
                 <p class="mt-1 text-sm text-gray-500">Upload some photos or a ZIP file to get started.</p>
@@ -253,6 +258,64 @@
             </div>
         </div>
 
+        <!-- Caption Settings Modal -->
+        <div id="caption-settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-700">
+                
+                <!-- Configuration View -->
+                <div id="caption-settings-config">
+                    <h3 class="text-xl font-bold text-white mb-4">Caption Settings</h3>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-400 text-sm mb-2">Max caption length (words)</label>
+                        <input type="number" id="setting-max-caption-len" value="50" min="5" max="200" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-400 text-sm mb-2">If text exists:</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="caption-mode" value="ignore" checked class="form-radio text-purple-600 h-4 w-4 bg-gray-900 border-gray-600 focus:ring-purple-500">
+                                <span class="text-gray-300">Ignore (Skip)</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="caption-mode" value="append" class="form-radio text-purple-600 h-4 w-4 bg-gray-900 border-gray-600 focus:ring-purple-500">
+                                <span class="text-gray-300">Append (Add to end)</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="caption-mode" value="overwrite" class="form-radio text-purple-600 h-4 w-4 bg-gray-900 border-gray-600 focus:ring-purple-500">
+                                <span class="text-gray-300">Overwrite (Replace)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <button id="toggle-caption-prompt-btn" class="text-sm text-purple-400 hover:text-purple-300 underline mb-2 focus:outline-none">Edit System Prompt</button>
+                        <textarea id="caption-system-prompt" class="hidden w-full h-32 bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-300 focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button id="cancel-captioning-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors">Cancel</button>
+                        <button id="start-captioning-btn" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded transition-colors">Start</button>
+                    </div>
+                </div>
+
+                <!-- Progress View -->
+                <div id="caption-settings-progress" class="hidden text-center">
+                    <h3 class="text-xl font-bold text-white mb-2">Auto-Captioning...</h3>
+                    <p class="text-gray-400 mb-4">TagPilot is writing descriptions for your images.</p>
+                    
+                    <div class="w-full bg-gray-700 rounded-full h-4 mb-2 overflow-hidden">
+                        <div id="caption-progress-bar" class="bg-purple-500 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="caption-progress-text" class="text-sm text-gray-300 mb-6">0 / 0</p>
+
+                    <button id="stop-captioning-btn" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded transition-colors">Stop</button>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Image Preview Modal -->
         <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
             <img id="preview-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
@@ -281,7 +344,9 @@
         const taggerSection = document.getElementById('tagger-section');
         const exportButton = document.getElementById('export-button');
         const resetButton = document.getElementById('reset-button');
+        const clearTagsButton = document.getElementById('clear-tags-button');
         const tagAllButton = document.getElementById('tag-all-button');
+        const captionAllButton = document.getElementById('caption-all-button'); 
         const datasetNameInput = document.getElementById('dataset-name-input');
         const triggerWordInput = document.getElementById('trigger-word-input');
         
@@ -312,6 +377,19 @@
         const tagProgressBar = document.getElementById('tag-progress-bar');
         const tagProgressText = document.getElementById('tag-progress-text');
 
+        // Caption Settings Modal References
+        const captionSettingsModal = document.getElementById('caption-settings-modal');
+        const captionSettingsConfig = document.getElementById('caption-settings-config');
+        const captionSettingsProgress = document.getElementById('caption-settings-progress');
+        const startCaptioningBtn = document.getElementById('start-captioning-btn');
+        const cancelCaptioningBtn = document.getElementById('cancel-captioning-btn');
+        const stopCaptioningBtn = document.getElementById('stop-captioning-btn');
+        const settingMaxCaptionLen = document.getElementById('setting-max-caption-len');
+        const captionProgressBar = document.getElementById('caption-progress-bar');
+        const captionProgressText = document.getElementById('caption-progress-text');
+        const toggleCaptionPromptBtn = document.getElementById('toggle-caption-prompt-btn');
+        const captionSystemPrompt = document.getElementById('caption-system-prompt');
+
         // Cropper elements
         const cropModal = document.getElementById('crop-modal');
         const cropImage = document.getElementById('crop-image');
@@ -321,21 +399,42 @@
         let currentCropIndex = -1;
 
         // Global state
+        // dataset array items now have: { file, tags, type: 'tags'|'caption' }
         let dataset = []; 
         let currentTriggerWord = ""; 
-        let isTagging = false; // Flag to control batch process
+        let isBatchProcessing = false; 
+
+        // Default Caption Prompt
+        const DEFAULT_CAPTION_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive caption for the provided image for the purpose of Lora training using tools like kohya_ss, OneTrainer or diffusion pipes. Follow these rules strictly:
+
+1. Information sufficiency: Captions should include all meaningful content and be comprehensive, especially for complex scenes that may be overlooked by general captions.
+2. Minimal redundancy: Captions should be concise and avoid unnecessary repetition of information.
+3. Human comprehensibility: Captions should be phrased naturally using correct spelling, grammar, and punctuation to be easily understood by humans.
+4. Grounded descriptions: For more specific tasks, provide region-specific captions that describe a particular area of the image defined by a bounding box, rather than just the general scene.
+5. Variety: Ensure a diverse set of captions for each image, including both general descriptions and more detailed ones, to provide richer training data.`;
+        captionSystemPrompt.value = DEFAULT_CAPTION_PROMPT;
 
         // --- Event Listeners ---
         imageUpload.addEventListener('change', handleImageUpload);
         zipUpload.addEventListener('change', handleZipUpload);
         exportButton.addEventListener('click', handleExport);
         resetButton.addEventListener('click', handleReset);
-        tagAllButton.addEventListener('click', openTagSettings); // Updated listener
+        clearTagsButton.addEventListener('click', handleClearTags); 
+        tagAllButton.addEventListener('click', openTagSettings); 
+        captionAllButton.addEventListener('click', openCaptionSettings); 
         
         // Tag Settings Listeners
         startTaggingBtn.addEventListener('click', startBatchTagging);
         cancelTaggingBtn.addEventListener('click', closeTagSettings);
-        stopTaggingBtn.addEventListener('click', stopBatchTagging);
+        stopTaggingBtn.addEventListener('click', stopBatchProcessing);
+
+        // Caption Settings Listeners
+        startCaptioningBtn.addEventListener('click', startBatchCaptioning);
+        cancelCaptioningBtn.addEventListener('click', closeCaptionSettings);
+        stopCaptioningBtn.addEventListener('click', stopBatchProcessing);
+        toggleCaptionPromptBtn.addEventListener('click', () => {
+            captionSystemPrompt.classList.toggle('hidden');
+        });
 
         previewClose.addEventListener('click', hidePreview);
         triggerWordInput.addEventListener('input', handleTriggerWordChange);
@@ -353,7 +452,8 @@
             if (e.key === 'Escape') {
                 if (!previewModal.classList.contains('hidden')) hidePreview();
                 if (!cropModal.classList.contains('hidden')) cancelCrop();
-                if (!tagSettingsModal.classList.contains('hidden') && !isTagging) closeTagSettings();
+                if (!tagSettingsModal.classList.contains('hidden') && !isBatchProcessing) closeTagSettings();
+                if (!captionSettingsModal.classList.contains('hidden') && !isBatchProcessing) closeCaptionSettings();
             }
         });
         
@@ -368,7 +468,6 @@
                 showNotification("No images loaded to tag.", 3000);
                 return;
             }
-            // Reset view
             tagSettingsConfig.classList.remove('hidden');
             tagSettingsProgress.classList.add('hidden');
             tagSettingsModal.classList.remove('hidden');
@@ -378,10 +477,26 @@
             tagSettingsModal.classList.add('hidden');
         }
 
-        function stopBatchTagging() {
-            isTagging = false;
+        function openCaptionSettings() {
+            if (dataset.length === 0) {
+                showNotification("No images loaded to caption.", 3000);
+                return;
+            }
+            captionSettingsConfig.classList.remove('hidden');
+            captionSettingsProgress.classList.add('hidden');
+            captionSettingsModal.classList.remove('hidden');
+        }
+
+        function closeCaptionSettings() {
+            captionSettingsModal.classList.add('hidden');
+        }
+
+        function stopBatchProcessing() {
+            isBatchProcessing = false;
             stopTaggingBtn.textContent = "Stopping...";
             stopTaggingBtn.disabled = true;
+            stopCaptioningBtn.textContent = "Stopping...";
+            stopCaptioningBtn.disabled = true;
         }
 
         async function startBatchTagging() {
@@ -393,32 +508,26 @@
             const maxTags = parseInt(settingMaxTags.value, 10) || 30;
             const mode = document.querySelector('input[name="tag-mode"]:checked').value;
 
-            // Switch UI
             tagSettingsConfig.classList.add('hidden');
             tagSettingsProgress.classList.remove('hidden');
             stopTaggingBtn.textContent = "Stop";
             stopTaggingBtn.disabled = false;
-            isTagging = true;
+            isBatchProcessing = true;
 
             let processed = 0;
             const total = dataset.length;
-            updateProgress(0, total);
-
-            // Parallel execution with concurrency limit could be added, but strictly sequential is safer for "Stop" logic and rate limits.
-            // Let's do sequential for better UX control and rate limiting safety.
+            updateProgress(0, total, tagProgressBar, tagProgressText);
             
             for (let i = 0; i < total; i++) {
-                if (!isTagging) break;
+                if (!isBatchProcessing) break;
 
                 const item = dataset[i];
                 const currentTags = item.tags.trim();
                 
-                // Logic based on mode
                 let shouldTag = false;
                 if (mode === 'overwrite') shouldTag = true;
-                else if (mode === 'append') shouldTag = true; // Always try to add more
+                else if (mode === 'append') shouldTag = true; 
                 else if (mode === 'ignore') {
-                    // Ignore if it has more than just the trigger word
                     const hasTags = currentTags.length > 0 && currentTags !== currentTriggerWord;
                     if (!hasTags) shouldTag = true;
                 }
@@ -427,7 +536,7 @@
                     try {
                         const file = item.file;
                         const base64Data = await imageToBase64(file);
-                        const newTagsString = await generateTagsWithGemini(base64Data, file.type); // raw API tags
+                        const newTagsString = await generateTagsWithGemini(base64Data, file.type);
 
                         if (newTagsString) {
                             let newTags = newTagsString.split(',').map(t => t.trim()).filter(Boolean);
@@ -436,28 +545,25 @@
                             if (mode === 'overwrite') {
                                 finalTags = newTags;
                             } else {
-                                // Append or Ignore(treated as empty start)
                                 const existing = currentTags.split(',').map(t => t.trim()).filter(Boolean);
                                 finalTags = [...existing, ...newTags];
                             }
 
-                            // De-duplicate
                             finalTags = [...new Set(finalTags)];
 
-                            // Handle Trigger Word (Ensure it stays first)
                             if (currentTriggerWord) {
                                 finalTags = finalTags.filter(t => t !== currentTriggerWord);
                                 finalTags.unshift(currentTriggerWord);
                             }
 
-                            // Max limit
                             if (finalTags.length > maxTags) {
                                 finalTags = finalTags.slice(0, maxTags);
                             }
 
-                            updateTags(i, finalTags, false); // Update data
-                            
-                            // Visual update for this card
+                            // Update data
+                            item.tags = finalTags.join(', ');
+                            item.type = 'tags'; // Set Type to Tags
+
                             const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
                             if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, i);
                         }
@@ -467,19 +573,92 @@
                 }
 
                 processed++;
-                updateProgress(processed, total);
+                updateProgress(processed, total, tagProgressBar, tagProgressText);
             }
 
-            renderTagViewer(); // Update global stats once at the end
-            isTagging = false;
+            renderTagViewer(); 
+            isBatchProcessing = false;
             closeTagSettings();
             showNotification(processed === total ? "Tagging Complete!" : "Tagging Stopped.");
         }
 
-        function updateProgress(current, total) {
+        async function startBatchCaptioning() {
+            if (typeof userApiKey === 'undefined' || !userApiKey) {
+                showNotification("API Key is missing. Check config.js", 4000, true);
+                return;
+            }
+
+            const maxLength = parseInt(settingMaxCaptionLen.value, 10) || 50;
+            const mode = document.querySelector('input[name="caption-mode"]:checked').value;
+            const customPrompt = captionSystemPrompt.value.trim() || DEFAULT_CAPTION_PROMPT;
+
+            captionSettingsConfig.classList.add('hidden');
+            captionSettingsProgress.classList.remove('hidden');
+            stopCaptioningBtn.textContent = "Stop";
+            stopCaptioningBtn.disabled = false;
+            isBatchProcessing = true;
+
+            let processed = 0;
+            const total = dataset.length;
+            updateProgress(0, total, captionProgressBar, captionProgressText);
+            
+            for (let i = 0; i < total; i++) {
+                if (!isBatchProcessing) break;
+
+                const item = dataset[i];
+                const currentText = item.tags.trim();
+                
+                let shouldCaption = false;
+                if (mode === 'overwrite') shouldCaption = true;
+                else if (mode === 'append') shouldCaption = true;
+                else if (mode === 'ignore') {
+                    if (currentText.length === 0 || currentText === currentTriggerWord) shouldCaption = true;
+                }
+
+                if (shouldCaption) {
+                    try {
+                        const file = item.file;
+                        const base64Data = await imageToBase64(file);
+                        const caption = await generateCaptionWithGemini(base64Data, file.type, customPrompt, maxLength);
+
+                        if (caption) {
+                            let finalText = "";
+                            if (mode === 'overwrite') {
+                                finalText = caption;
+                            } else {
+                                // Append with a space for captions
+                                finalText = currentText ? currentText + " " + caption : caption;
+                            }
+                            
+                            if (currentTriggerWord && !finalText.startsWith(currentTriggerWord)) {
+                                finalText = currentTriggerWord + ", " + finalText;
+                            }
+
+                            dataset[i].tags = finalText;
+                            dataset[i].type = 'caption'; // Set Type to Caption
+                            
+                            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
+                            if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, i);
+                        }
+                    } catch (e) {
+                        console.error(`Error captioning image ${i}`, e);
+                    }
+                }
+
+                processed++;
+                updateProgress(processed, total, captionProgressBar, captionProgressText);
+            }
+
+            renderTagViewer();
+            isBatchProcessing = false;
+            closeCaptionSettings();
+            showNotification(processed === total ? "Captioning Complete!" : "Captioning Stopped.");
+        }
+
+        function updateProgress(current, total, barElement, textElement) {
             const percent = Math.round((current / total) * 100);
-            tagProgressBar.style.width = `${percent}%`;
-            tagProgressText.textContent = `${current} / ${total}`;
+            barElement.style.width = `${percent}%`;
+            textElement.textContent = `${current} / ${total}`;
         }
 
 
@@ -488,16 +667,25 @@
         function handleTriggerWordChange(e) {
             const newTrigger = e.target.value.trim();
             dataset.forEach((item, index) => {
-                let tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
-                if (currentTriggerWord && tags.length > 0 && tags[0] === currentTriggerWord) {
-                    tags.shift();
+                let currentText = item.tags.trim();
+                
+                // Remove old trigger word from start
+                if (currentTriggerWord && currentText.startsWith(currentTriggerWord)) {
+                    // Remove trigger word and following comma/space if present
+                    currentText = currentText.substring(currentTriggerWord.length).trim();
+                    if (currentText.startsWith(',')) currentText = currentText.substring(1).trim();
                 }
+                
+                // Add new trigger word
                 if (newTrigger) {
-                    const existingIndex = tags.indexOf(newTrigger);
-                    if (existingIndex > -1) tags.splice(existingIndex, 1);
-                    tags.unshift(newTrigger);
+                    if (currentText) {
+                        currentText = newTrigger + ", " + currentText;
+                    } else {
+                        currentText = newTrigger;
+                    }
                 }
-                updateTags(index, tags, false);
+                
+                item.tags = currentText;
             });
             currentTriggerWord = newTrigger;
             renderTagUpdates();
@@ -513,6 +701,7 @@
             renderTagViewer();
         }
 
+        // ... (Image Upload / ZIP Upload Logic Remains Same) ...
         async function handleImageUpload(event) {
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
@@ -536,7 +725,8 @@
                 }
                 
                 let initialTags = currentTriggerWord ? currentTriggerWord : "";
-                newDatasetItems.push({ file: finalFile, tags: initialTags });
+                // Default type to 'tags'
+                newDatasetItems.push({ file: finalFile, tags: initialTags, type: 'tags' });
                 existingHashes.add(hash); 
             }
             
@@ -602,14 +792,13 @@
                     }
 
                     if (currentTriggerWord) {
-                        let tagList = tags.split(',').map(t => t.trim()).filter(Boolean);
-                        const idx = tagList.indexOf(currentTriggerWord);
-                        if (idx > -1) tagList.splice(idx, 1);
-                        tagList.unshift(currentTriggerWord);
-                        tags = tagList.join(', ');
+                        if (!tags.startsWith(currentTriggerWord)) {
+                            tags = tags ? currentTriggerWord + ", " + tags : currentTriggerWord;
+                        }
                     }
 
-                    newDatasetItems.push({ file: imageFile, tags: tags });
+                    // For existing zip, assume 'tags' type default, or maybe check for periods? Default safe is 'tags'.
+                    newDatasetItems.push({ file: imageFile, tags: tags, type: 'tags' });
                     existingHashes.add(hash);
                 }
                 
@@ -638,6 +827,24 @@
             render();
         }
 
+        function handleClearTags() {
+            if (!confirm("Are you sure you want to clear tags/captions from all images? Images will remain loaded.")) return;
+            
+            dataset.forEach(item => {
+                // If trigger word is set, keep it, otherwise clear all
+                if (currentTriggerWord) {
+                    item.tags = currentTriggerWord;
+                } else {
+                    item.tags = "";
+                }
+                // Reset type to default
+                item.type = 'tags';
+            });
+            
+            renderTagUpdates();
+            showNotification("All tags cleared.");
+        }
+
         function removeImage(indexToRemove) {
             dataset.splice(indexToRemove, 1);
             render();
@@ -654,6 +861,7 @@
             if (!confirm(`Are you sure you want to delete the tag "${tagToDelete}" from all images?`)) return;
 
             dataset.forEach((item, index) => {
+                if (item.type === 'caption') return; // Skip captions for global tag delete
                 let tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
                 if (tags.includes(tagToDelete)) {
                     tags = tags.filter(t => t !== tagToDelete);
@@ -662,6 +870,13 @@
             });
             renderTagUpdates(); 
             showNotification(`Deleted tag "${tagToDelete}" from dataset.`);
+        }
+
+        function toggleCardType(index) {
+            const item = dataset[index];
+            item.type = item.type === 'caption' ? 'tags' : 'caption';
+            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
+            if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, index);
         }
 
         function render() {
@@ -688,7 +903,14 @@
                             <img src="${imageUrl}" alt="${item.file.name}" class="w-full h-full object-cover">
                         </div>
                         <div class="p-4 flex flex-col flex-grow min-w-0 h-full">
-                            <p class="text-xs text-gray-400 mb-2" id="resolution-${index}">...</p>
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="text-xs text-gray-400" id="resolution-${index}">...</p>
+                                <button class="text-xs text-gray-500 hover:text-white" title="Toggle View Mode (Tags/Text)" onclick="toggleCardType(${index})">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
                             <div class="flex flex-grow gap-3 min-h-0">
                                 <div class="tag-area-wrapper w-full flex-grow bg-gray-700 border border-gray-600 rounded-md p-2 flex flex-wrap items-start content-start gap-2 overflow-y-auto" data-index="${index}">
                                 </div>
@@ -706,11 +928,17 @@
                                         </svg>
                                         <span>Tag</span>
                                     </button>
+                                    <button class="caption-single-button w-full flex items-center justify-center gap-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                        </svg>
+                                        <span>Caption</span>
+                                    </button>
                                     <button class="remove-btn w-full flex items-center justify-center gap-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
-                                        <span>Remove</span>
+                                        <span>Delete</span>
                                     </button>
                                 </div>
                             </div>
@@ -730,6 +958,7 @@
                     card.querySelector('.remove-btn').addEventListener('click', (e) => removeImage(index));
                     card.querySelector('.thumbnail-container').addEventListener('click', () => showPreview(imageUrl));
                     card.querySelector('.autotag-single-button').addEventListener('click', (e) => handleAutoTag(index));
+                    card.querySelector('.caption-single-button').addEventListener('click', (e) => handleSingleCaption(index)); // New
                     card.querySelector('.crop-btn').addEventListener('click', () => startCropping(index));
 
                     imageGrid.appendChild(card);
@@ -745,17 +974,35 @@
         
         function renderTagsInCard(container, index) {
             container.innerHTML = ''; 
-            const tags = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+            const item = dataset[index];
+            const isCaptionMode = item.type === 'caption';
+
+            if (isCaptionMode) {
+                // Render Text Area for Caption Mode
+                const textarea = document.createElement('textarea');
+                textarea.className = 'w-full h-full bg-gray-900 text-gray-200 text-sm border-none outline-none resize-none p-2 rounded focus:ring-1 focus:ring-indigo-500';
+                textarea.placeholder = "Enter caption...";
+                textarea.value = item.tags;
+                textarea.addEventListener('input', (e) => {
+                    item.tags = e.target.value;
+                    // No tag viewer update for caption mode usually, but maybe for trigger word?
+                });
+                container.appendChild(textarea);
+                return;
+            }
+            
+            // Render Tags (Pills) with 'x' to remove
+            const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
 
             tags.forEach((tag, i) => {
                 const tagEl = document.createElement('div');
                 const isTrigger = i === 0 && currentTriggerWord && tag === currentTriggerWord;
                 const bgClass = isTrigger ? 'bg-purple-600' : 'bg-indigo-500';
                 
-                tagEl.className = `flex items-center ${bgClass} text-white text-xs px-2 py-1 rounded-full cursor-default select-none`;
+                tagEl.className = `flex items-center ${bgClass} text-white text-xs px-2 py-1 rounded-full cursor-default select-none max-w-full`;
                 tagEl.innerHTML = `
-                    <span>${tag}</span>
-                    <button class="ml-2 text-indigo-100 hover:text-white remove-tag-btn font-bold">&times;</button>
+                    <span class="truncate max-w-[150px]" title="${tag}">${tag}</span>
+                    <button class="ml-2 text-indigo-100 hover:text-white remove-tag-btn font-bold flex-shrink-0">&times;</button>
                 `;
                 tagEl.querySelector('.remove-tag-btn').addEventListener('click', () => {
                     const newTags = tags.filter((_, idx) => idx !== i);
@@ -773,10 +1020,14 @@
                 if (e.key === 'Enter' || e.key === ',') {
                     e.preventDefault();
                     const newTag = inputEl.value.trim();
-                    if (newTag && !tags.includes(newTag)) {
-                        const newTags = [...tags, newTag];
-                        updateTags(index, newTags);
-                        renderTagsInCard(container, index);
+                    if (newTag) {
+                        const current = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+                        // Check for duplicates before adding
+                        if (!current.includes(newTag)) {
+                            current.push(newTag);
+                            updateTags(index, current);
+                            renderTagsInCard(container, index);
+                        }
                     }
                     inputEl.value = '';
                 }
@@ -784,6 +1035,7 @@
             container.appendChild(inputEl);
         }
 
+        // ... (rest of the code: renderTagViewer, handleExport, handleAutoTagAll, handleAutoTag, handleSingleCaption, cropping, helpers) ...
         function renderTagViewer() {
             if (dataset.length === 0) {
                 tagViewerSection.classList.add('hidden');
@@ -795,6 +1047,11 @@
             
             const tagCounts = {};
             for (const item of dataset) {
+                // Only count tags if in tag mode, captions shouldn't pollute global tag view?
+                // Or maybe they should? Usually captions are unique per image so frequency is 1.
+                // Let's exclude caption mode items from tag viewer to keep it clean.
+                if (item.type === 'caption') continue;
+
                 const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
                 for (const tag of tags) {
                     tagCounts[tag] = (tagCounts[tag] || 0) + 1;
@@ -806,7 +1063,7 @@
             tagViewerList.innerHTML = ''; 
             
             if (sortedTags.length === 0) {
-                tagViewerList.innerHTML = '<p class="text-gray-500 w-full text-center">No tags found.</p>';
+                tagViewerList.innerHTML = '<p class="text-gray-500 w-full text-center">No tags found (or all images are in caption mode).</p>';
                 return;
             }
 
@@ -874,13 +1131,10 @@
         }
 
         async function handleAutoTagAll() {
-            // Functionality moved to modal/startBatchTagging
             openTagSettings();
         }
 
         async function handleAutoTag(index) {
-            // Individual button logic: Uses default settings (Overwrite/Append doesn't matter much for single click, assume append/overwrite logic similar to old behavior or smart append)
-            // Let's implement smart append for single click to match expectations: keep existing, add new.
             const button = document.querySelector(`.autotag-single-button[data-index='${index}']`);
             if (!button) return;
 
@@ -909,6 +1163,7 @@
                     }
 
                     updateTags(index, combinedTags);
+                    dataset[index].type = 'tags'; // Force type
                     
                     const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
                     if (tagAreaWrapper) {
@@ -917,6 +1172,45 @@
                 }
             } catch (error) {
                 console.error(`Failed to auto-tag image ${index}:`, error);
+            } finally {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        }
+
+        // --- Single Caption Logic ---
+        async function handleSingleCaption(index) {
+            const button = document.querySelector(`.caption-single-button[data-index='${index}']`);
+            if (!button) return;
+
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<div class="spinner"></div>';
+            button.disabled = true;
+
+            try {
+                const file = dataset[index].file;
+                const base64Data = await imageToBase64(file);
+                // For single caption, assume default prompt and max len 75, simple append
+                const caption = await generateCaptionWithGemini(base64Data, file.type, DEFAULT_CAPTION_PROMPT, 75);
+                
+                if (caption) {
+                    let currentText = dataset[index].tags;
+                    let finalText = currentText ? currentText + " " + caption : caption;
+                    
+                    if (currentTriggerWord && !finalText.startsWith(currentTriggerWord)) {
+                        finalText = currentTriggerWord + ", " + finalText;
+                    }
+
+                    dataset[index].tags = finalText;
+                    dataset[index].type = 'caption'; // Force type
+
+                    const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
+                    if (tagAreaWrapper) {
+                        renderTagsInCard(tagAreaWrapper, index);
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to caption image ${index}:`, error);
             } finally {
                 button.innerHTML = originalContent;
                 button.disabled = false;
@@ -994,7 +1288,7 @@
             }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
 
-            const systemPrompt = `You are an assistant for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
+            const systemPrompt = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
 Follow these rules strictly:
 1.  **Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
 2.  **Avoid Noise:** Do NOT use generic, low-impact tags like 'solo', '1girl', 'looking at viewer', 'realistic', 'photorealistic'.
@@ -1035,6 +1329,48 @@ The final output MUST be a comma-separated list of tags.`;
                 return null;
             } catch (error) {
                 console.error("Gemini API call failed:", error);
+                return null;
+            }
+        }
+
+        async function generateCaptionWithGemini(base64ImageData, mimeType, customPrompt, maxLength) {
+            if (typeof userApiKey === 'undefined' || !userApiKey) {
+                showNotification("API Key is missing. Please add it to config.js.", 5000, true);
+                throw new Error("API Key is missing.");
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
+
+            const finalPrompt = `${customPrompt} Keep the description under approximately ${maxLength} words. Do not use bullet points or numbering. Provide continuous text.`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: finalPrompt },
+                        { inlineData: { mimeType: mimeType, data: base64ImageData } }
+                    ]
+                }]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}: ${await response.text()}`);
+                }
+                
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    return text.trim();
+                }
+                return null;
+            } catch (error) {
+                console.error("Gemini Captioning API call failed:", error);
                 return null;
             }
         }
