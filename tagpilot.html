@@ -219,6 +219,14 @@
                     </div>
 
                     <div class="mb-6">
+                        <button id="toggle-tag-prompt-btn" class="text-sm text-indigo-400 hover:text-indigo-300 underline mb-2 focus:outline-none">
+                            Edit System Prompt
+                        </button>
+                        <textarea id="tag-system-prompt"
+                                  class="hidden w-full h-32 bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-300 focus:outline-none focus:border-indigo-500"></textarea>
+                    </div>
+
+                    <div class="mb-6">
                         <label class="block text-gray-400 text-sm mb-2">If tags exist:</label>
                         <div class="space-y-2">
                             <label class="flex items-center space-x-3 cursor-pointer">
@@ -376,6 +384,8 @@
         const settingMaxTags = document.getElementById('setting-max-tags');
         const tagProgressBar = document.getElementById('tag-progress-bar');
         const tagProgressText = document.getElementById('tag-progress-text');
+        const toggleTagPromptBtn = document.getElementById('toggle-tag-prompt-btn');
+        const tagSystemPrompt = document.getElementById('tag-system-prompt');
 
         // Caption Settings Modal References
         const captionSettingsModal = document.getElementById('caption-settings-modal');
@@ -404,6 +414,17 @@
         let currentTriggerWord = ""; 
         let isBatchProcessing = false; 
 
+        // Default Tag Prompt
+        const DEFAULT_TAG_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
+Follow these rules strictly:
+1.  **Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
+2.  **Avoid Noise:** Do NOT use generic, low-impact tags like 'solo', '1girl', 'looking at viewer', 'realistic', 'photorealistic'.
+3.  **Prioritize Impact:** List the most descriptive and important tags first.
+4.  **Balance Character and Context:** Aim for approximately two-thirds of the tags describing the character (person, clothing, hair, accessories) and one-third describing the background, composition, and lighting (e.g., 'outdoors', 'city street at night', 'soft lighting').
+5.  **Be Concise and Specific:** Avoid redundant tags. For example, use 'blue eyes' instead of 'blue color, eyes'.
+
+The final output MUST be a comma-separated list of tags.`;
+
         // Default Caption Prompt
         const DEFAULT_CAPTION_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive caption for the provided image for the purpose of Lora training using tools like kohya_ss, OneTrainer or diffusion pipes. Follow these rules strictly:
 
@@ -411,7 +432,12 @@
 2. Minimal redundancy: Captions should be concise and avoid unnecessary repetition of information.
 3. Human comprehensibility: Captions should be phrased naturally using correct spelling, grammar, and punctuation to be easily understood by humans.
 4. Grounded descriptions: For more specific tasks, provide region-specific captions that describe a particular area of the image defined by a bounding box, rather than just the general scene.
-5. Variety: Ensure a diverse set of captions for each image, including both general descriptions and more detailed ones, to provide richer training data.`;
+5. Variety: Ensure a diverse set of captions for each image, including both general descriptions and more detailed ones, to provide richer training data.
+
+Expected outcome is a human-readable continuous text consisting of several sentences without the use of numbering or bullet points.`;
+
+        // Initialize system prompt textareas
+        tagSystemPrompt.value = DEFAULT_TAG_PROMPT;
         captionSystemPrompt.value = DEFAULT_CAPTION_PROMPT;
 
         // --- Event Listeners ---
@@ -427,6 +453,10 @@
         startTaggingBtn.addEventListener('click', startBatchTagging);
         cancelTaggingBtn.addEventListener('click', closeTagSettings);
         stopTaggingBtn.addEventListener('click', stopBatchProcessing);
+
+        toggleTagPromptBtn.addEventListener('click', () => {
+            tagSystemPrompt.classList.toggle('hidden');
+        });
 
         // Caption Settings Listeners
         startCaptioningBtn.addEventListener('click', startBatchCaptioning);
@@ -507,6 +537,7 @@
 
             const maxTags = parseInt(settingMaxTags.value, 10) || 30;
             const mode = document.querySelector('input[name="tag-mode"]:checked').value;
+            const customTagPrompt = tagSystemPrompt.value.trim() || DEFAULT_TAG_PROMPT;
 
             tagSettingsConfig.classList.add('hidden');
             tagSettingsProgress.classList.remove('hidden');
@@ -536,7 +567,7 @@
                     try {
                         const file = item.file;
                         const base64Data = await imageToBase64(file);
-                        const newTagsString = await generateTagsWithGemini(base64Data, file.type);
+                        const newTagsString = await generateTagsWithGemini(base64Data, file.type, customTagPrompt);
 
                         if (newTagsString) {
                             let newTags = newTagsString.split(',').map(t => t.trim()).filter(Boolean);
@@ -701,7 +732,6 @@
             renderTagViewer();
         }
 
-        // ... (Image Upload / ZIP Upload Logic Remains Same) ...
         async function handleImageUpload(event) {
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
@@ -985,7 +1015,6 @@
                 textarea.value = item.tags;
                 textarea.addEventListener('input', (e) => {
                     item.tags = e.target.value;
-                    // No tag viewer update for caption mode usually, but maybe for trigger word?
                 });
                 container.appendChild(textarea);
                 return;
@@ -1035,7 +1064,6 @@
             container.appendChild(inputEl);
         }
 
-        // ... (rest of the code: renderTagViewer, handleExport, handleAutoTagAll, handleAutoTag, handleSingleCaption, cropping, helpers) ...
         function renderTagViewer() {
             if (dataset.length === 0) {
                 tagViewerSection.classList.add('hidden');
@@ -1047,9 +1075,6 @@
             
             const tagCounts = {};
             for (const item of dataset) {
-                // Only count tags if in tag mode, captions shouldn't pollute global tag view?
-                // Or maybe they should? Usually captions are unique per image so frequency is 1.
-                // Let's exclude caption mode items from tag viewer to keep it clean.
                 if (item.type === 'caption') continue;
 
                 const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
@@ -1145,7 +1170,8 @@
             try {
                 const file = dataset[index].file;
                 const base64Data = await imageToBase64(file);
-                const generatedTagsString = await generateTagsWithGemini(base64Data, file.type);
+                const customTagPrompt = tagSystemPrompt.value.trim() || DEFAULT_TAG_PROMPT;
+                const generatedTagsString = await generateTagsWithGemini(base64Data, file.type, customTagPrompt);
                 
                 if (generatedTagsString) {
                     const existingTags = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
@@ -1281,22 +1307,16 @@
             return hashHex;
         }
         
-        async function generateTagsWithGemini(base64ImageData, mimeType) {
+        async function generateTagsWithGemini(base64ImageData, mimeType, customPrompt) {
             if (typeof userApiKey === 'undefined' || !userApiKey) {
                 showNotification("API Key is missing. Please add it to config.js.", 5000, true);
                 throw new Error("API Key is missing.");
             }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
 
-            const systemPrompt = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
-Follow these rules strictly:
-1.  **Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
-2.  **Avoid Noise:** Do NOT use generic, low-impact tags like 'solo', '1girl', 'looking at viewer', 'realistic', 'photorealistic'.
-3.  **Prioritize Impact:** List the most descriptive and important tags first.
-4.  **Balance Character and Context:** Aim for approximately two-thirds of the tags describing the character (person, clothing, hair, accessories) and one-third describing the background, composition, and lighting (e.g., 'outdoors', 'city street at night', 'soft lighting').
-5.  **Be Concise and Specific:** Avoid redundant tags. For example, use 'blue eyes' instead of 'blue color, eyes'.
-
-The final output MUST be a comma-separated list of tags.`;
+            const systemPrompt = (customPrompt && customPrompt.trim().length > 0)
+                ? customPrompt.trim()
+                : DEFAULT_TAG_PROMPT;
 
             const payload = {
                 contents: [{
@@ -1322,9 +1342,7 @@ The final output MUST be a comma-separated list of tags.`;
                 const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
                 if (text) {
-                    let tags = text.trim().split(',').map(t => t.trim()).filter(Boolean);
-                    // Return raw list, slicing handled by caller based on config
-                    return tags.join(', ');
+                    return text.trim();
                 }
                 return null;
             } catch (error) {
@@ -1333,54 +1351,55 @@ The final output MUST be a comma-separated list of tags.`;
             }
         }
 
-async function generateCaptionWithGemini(base64ImageData, mimeType, customPrompt, maxLength) {
-    if (typeof userApiKey === 'undefined' || !userApiKey) {
-        showNotification("API Key is missing. Please add it to config.js.", 5000, true);
-        throw new Error("API Key is missing.");
-    }
+        async function generateCaptionWithGemini(base64ImageData, mimeType, customPrompt, maxLength) {
+            if (typeof userApiKey === 'undefined' || !userApiKey) {
+                showNotification("API Key is missing. Please add it to config.js.", 5000, true);
+                throw new Error("API Key is missing.");
+            }
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
 
-    const finalPrompt = `${customPrompt} Keep the description strictly under ${maxLength} words.`;
+            const finalPrompt = `${customPrompt} Keep the description strictly under ${maxLength} words.`;
 
-    const payload = {
-        contents: [{
-            parts: [
-                { text: finalPrompt },
-                { inlineData: { mimeType: mimeType, data: base64ImageData } }
-            ]
-        }]
-    };
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: finalPrompt },
+                        { inlineData: { mimeType: mimeType, data: base64ImageData } }
+                    ]
+                }]
+            };
 
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}: ${await response.text()}`);
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}: ${await response.text()}`);
+                }
+                
+                const result = await response.json();
+                let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+                text = text.trim();
+
+                // HARD ENFORCED WORD LIMIT
+                const words = text.split(/\s+/);
+                if (words.length > maxLength) {
+                    text = words.slice(0, maxLength).join(" ");
+                }
+
+                return text;
+
+            } catch (error) {
+                console.error("TagPilot Captioning API call failed:", error);
+                return null;
+            }
         }
-        
-        const result = await response.json();
-        let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-        text = text.trim();
-
-        // HARD ENFORCED WORD LIMIT
-        const words = text.split(/\s+/);
-        if (words.length > maxLength) {
-            text = words.slice(0, maxLength).join(" ");
-        }
-
-        return text;
-
-    } catch (error) {
-        console.error("TagPilot Captioning API call failed:", error);
-        return null;
-    }
-}
         function showPreview(imageUrl) {
             previewImage.src = imageUrl;
             previewModal.classList.remove('hidden');
