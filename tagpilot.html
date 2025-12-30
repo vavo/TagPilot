@@ -6,109 +6,68 @@
     <title>TagPilot ✈️</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-    <script src="config.js"></script> <!-- Loads the API key from your local, untracked config file -->
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Simple scrollbar styling for a more modern look */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #2d3748;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4a5568;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #718096;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 220px;
-            background-color: #2d3748;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px 10px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -110px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 0.8rem;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-        .spinner {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #5a67d8;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Cropper.js modal background */
-        .cropper-container {
-            margin: auto;
-        }
-        
-        /* Smooth transition for collapsible */
-        .collapsible-content {
-            transition: max-height 0.3s ease-out;
-            max-height: 0;
-            overflow: hidden;
-        }
-        .collapsible-content.expanded {
-            max-height: 1000px; /* Arbitrary large height for transition */
-            overflow-y: auto;
-        }
-        .rotate-icon {
-            transition: transform 0.3s ease;
-        }
-        .rotate-icon.expanded {
-            transform: rotate(180deg);
-        }
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2d3748; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext { visibility: hidden; width: 220px; background-color: #2d3748; color: #fff; text-align: center; border-radius: 6px; padding: 5px 10px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 0.8rem; }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+        .spinner { border: 2px solid #f3f3f3; border-top: 2px solid #5a67d8; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .cropper-container { margin: auto; }
+        .collapsible-content { transition: max-height 0.3s ease-out; max-height: 0; overflow: hidden; }
+        .collapsible-content.expanded { max-height: 1000px; overflow-y: auto; }
+        .rotate-icon { transition: transform 0.3s ease; }
+        .rotate-icon.expanded { transform: rotate(180deg); }
+        .settings-icon { position: fixed; top: 10px; right: 10px; font-size: 32px; cursor: pointer; z-index: 1000; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: #1f2937; padding: 24px; border-radius: 12px; width: 320px; color: white; }
+        .close { float: right; cursor: pointer; font-size: 24px; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
 
-    <!-- Notification Element -->
+    <!-- Settings Icon -->
+    <div id="settings-icon" class="settings-icon">⚙️</div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeSettings">×</span>
+            <h2 class="text-2xl mb-4">Settings</h2>
+            <label class="block mb-2">Model:</label>
+            <select id="modelSelect" class="w-full bg-gray-700 p-2 rounded mb-4">
+                <option value="gemini">Gemini</option>
+                <option value="grok">Grok</option>
+                <option value="openai">OpenAI</option>
+            </select>
+            <label class="block mb-2">API Key:</label>
+            <input type="password" id="apiKeyInput" class="w-full bg-gray-700 p-2 rounded mb-4">
+            <button id="saveSettings" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded">Save</button>
+        </div>
+    </div>
+
+    <!-- Notification -->
     <div id="notification" class="hidden fixed top-5 right-5 bg-yellow-500 text-gray-900 py-3 px-5 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full">
         <p id="notification-text"></p>
     </div>
 
     <div class="container mx-auto p-4 md:p-8">
-        
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white mb-2">TagPilot ✈️</h1>
             <p class="text-lg text-gray-400">Advanced LoRA Dataset Tagger</p>
         </header>
 
-        <!-- Input Section -->
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
             <h2 class="text-2xl font-semibold mb-4 text-white">1. Load Your Dataset</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-                
-                <!-- Upload Photos -->
                 <div>
                     <label for="image-upload" class="w-full h-full flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-indigo-600 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-all">
                         <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -117,20 +76,17 @@
                     </label>
                     <input id="image-upload" type="file" class="hidden" multiple accept="image/png, image/jpeg, image/webp">
                 </div>
-
-                <!-- Upload ZIP -->
                 <div>
                     <label for="zip-upload" class="w-full h-full flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-indigo-600 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-all">
                         <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span class="font-semibold">Upload ZIP Dataset</span>
                         <span class="text-sm text-gray-400">.zip file with images and .txt files</span>
-                     </label>
+                    </label>
                     <input id="zip-upload" type="file" class="hidden" accept=".zip">
                 </div>
             </div>
         </div>
 
-        <!-- Action Bar & Tagger Section -->
         <div id="tagger-section" class="hidden">
             <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col gap-4">
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4 flex-wrap">
@@ -139,23 +95,17 @@
                         <button id="reset-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
                             Reset All
                         </button>
-                        
                         <button id="clear-tags-button" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
                             Clear Tags/Captions
                         </button>
-
-                        <!-- Trigger Word Input -->
                         <div class="relative flex items-center">
                             <span class="absolute left-3 text-gray-400 text-sm">Trigger Word:</span>
                             <input type="text" id="trigger-word-input" placeholder="e.g. ohwx man" class="bg-gray-700 border border-gray-600 rounded-md py-2 pl-24 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40 sm:w-48">
                         </div>
-
-                        <!-- Dataset Name Input (For export filename) -->
                         <div class="relative flex items-center">
                             <span class="absolute left-3 text-gray-400 text-sm">Dataset Name:</span>
                             <input type="text" id="dataset-name-input" placeholder="filename" class="bg-gray-700 border border-gray-600 rounded-md py-2 pl-28 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40 sm:w-48">
                         </div>
-
                         <button id="tag-all-button" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">Tag All</button>
                         <button id="caption-all-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">Caption All</button>
                         <button id="export-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">
@@ -165,7 +115,6 @@
                 </div>
             </div>
 
-            <!-- Tag Viewer (Replacing simple summary) -->
             <div id="tag-viewer-section" class="bg-gray-800 rounded-lg shadow-lg mb-6 overflow-hidden hidden">
                 <div id="tag-viewer-header" class="p-4 bg-gray-750 flex justify-between items-center cursor-pointer hover:bg-gray-700 transition-colors border-b border-gray-700">
                     <div class="flex items-center gap-3">
@@ -176,16 +125,13 @@
                 </div>
                 <div id="tag-viewer-content" class="collapsible-content bg-gray-800">
                     <div id="tag-viewer-list" class="p-4 flex flex-wrap gap-2">
-                        <!-- Tag pills will be injected here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Image Grid -->
             <div id="image-grid" class="grid grid-cols-1 gap-6">
-                <!-- Image cards will be dynamically inserted here -->
             </div>
-             <div id="placeholder" class="text-center py-20 bg-gray-800 rounded-lg">
+            <div id="placeholder" class="text-center py-20 bg-gray-800 rounded-lg">
                 <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
@@ -194,10 +140,9 @@
             </div>
         </div>
 
-        <!-- Loader Overlay -->
         <div id="loader" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
             <div class="flex flex-col items-center">
-                 <svg class="animate-spin h-10 w-10 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-10 w-10 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -205,27 +150,20 @@
             </div>
         </div>
 
-        <!-- Tag Settings Modal -->
         <div id="tag-settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
             <div class="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-700">
-                
-                <!-- Configuration View -->
                 <div id="tag-settings-config">
                     <h3 class="text-xl font-bold text-white mb-4">Tagging Settings</h3>
-                    
                     <div class="mb-4">
                         <label class="block text-gray-400 text-sm mb-2">Max number of tags per image</label>
                         <input type="number" id="setting-max-tags" value="30" min="1" max="100" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
                     </div>
-
                     <div class="mb-6">
                         <button id="toggle-tag-prompt-btn" class="text-sm text-indigo-400 hover:text-indigo-300 underline mb-2 focus:outline-none">
                             Edit System Prompt
                         </button>
-                        <textarea id="tag-system-prompt"
-                                  class="hidden w-full h-32 bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-300 focus:outline-none focus:border-indigo-500"></textarea>
+                        <textarea id="tag-system-prompt" class="hidden w-full h-32 bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-300 focus:outline-none focus:border-indigo-500"></textarea>
                     </div>
-
                     <div class="mb-6">
                         <label class="block text-gray-400 text-sm mb-2">If tags exist:</label>
                         <div class="space-y-2">
@@ -243,42 +181,31 @@
                             </label>
                         </div>
                     </div>
-
                     <div class="flex justify-end gap-3">
                         <button id="cancel-tagging-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors">Cancel</button>
                         <button id="start-tagging-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded transition-colors">Start</button>
                     </div>
                 </div>
-
-                <!-- Progress View -->
                 <div id="tag-settings-progress" class="hidden text-center">
                     <h3 class="text-xl font-bold text-white mb-2">Auto-Tagging in Progress...</h3>
                     <p class="text-gray-400 mb-4">Please wait while TagPilot processes your images.</p>
-                    
                     <div class="w-full bg-gray-700 rounded-full h-4 mb-2 overflow-hidden">
                         <div id="tag-progress-bar" class="bg-teal-500 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                     <p id="tag-progress-text" class="text-sm text-gray-300 mb-6">0 / 0</p>
-
                     <button id="stop-tagging-btn" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded transition-colors">Stop</button>
                 </div>
-
             </div>
         </div>
 
-        <!-- Caption Settings Modal -->
         <div id="caption-settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
             <div class="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-700">
-                
-                <!-- Configuration View -->
                 <div id="caption-settings-config">
                     <h3 class="text-xl font-bold text-white mb-4">Caption Settings</h3>
-                    
                     <div class="mb-4">
                         <label class="block text-gray-400 text-sm mb-2">Max caption length (words)</label>
                         <input type="number" id="setting-max-caption-len" value="50" min="5" max="200" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500">
                     </div>
-
                     <div class="mb-4">
                         <label class="block text-gray-400 text-sm mb-2">If text exists:</label>
                         <div class="space-y-2">
@@ -296,41 +223,32 @@
                             </label>
                         </div>
                     </div>
-
                     <div class="mb-6">
                         <button id="toggle-caption-prompt-btn" class="text-sm text-purple-400 hover:text-purple-300 underline mb-2 focus:outline-none">Edit System Prompt</button>
                         <textarea id="caption-system-prompt" class="hidden w-full h-32 bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-300 focus:outline-none focus:border-purple-500"></textarea>
                     </div>
-
                     <div class="flex justify-end gap-3">
                         <button id="cancel-captioning-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors">Cancel</button>
                         <button id="start-captioning-btn" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded transition-colors">Start</button>
                     </div>
                 </div>
-
-                <!-- Progress View -->
                 <div id="caption-settings-progress" class="hidden text-center">
                     <h3 class="text-xl font-bold text-white mb-2">Auto-Captioning...</h3>
                     <p class="text-gray-400 mb-4">TagPilot is writing descriptions for your images.</p>
-                    
                     <div class="w-full bg-gray-700 rounded-full h-4 mb-2 overflow-hidden">
                         <div id="caption-progress-bar" class="bg-purple-500 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                     <p id="caption-progress-text" class="text-sm text-gray-300 mb-6">0 / 0</p>
-
                     <button id="stop-captioning-btn" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded transition-colors">Stop</button>
                 </div>
-
             </div>
         </div>
 
-        <!-- Image Preview Modal -->
         <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
             <img id="preview-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
             <button id="preview-close" class="absolute top-4 right-4 text-white text-4xl font-bold">&times;</button>
         </div>
 
-        <!-- Cropper Modal -->
         <div id="crop-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center z-50 p-4">
             <div class="w-full max-w-4xl h-4/5">
                 <img id="crop-image" src="" class="max-w-full max-h-full">
@@ -340,11 +258,109 @@
                 <button id="crop-cancel" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">Cancel</button>
             </div>
         </div>
-
     </div>
 
     <script>
-        // DOM element references
+        // Settings
+        const settingsIcon = document.getElementById('settings-icon');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettings');
+        const modelSelect = document.getElementById('modelSelect');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveSettingsBtn = document.getElementById('saveSettings');
+
+        settingsIcon.addEventListener('click', openSettings);
+        closeSettingsBtn.addEventListener('click', closeSettings);
+        saveSettingsBtn.addEventListener('click', saveSettings);
+        modelSelect.addEventListener('change', updateKeyField);
+
+        function openSettings() {
+            settingsModal.style.display = 'flex';
+            modelSelect.value = localStorage.getItem('selectedModel') || 'gemini';
+            updateKeyField();
+        }
+
+        function closeSettings() {
+            settingsModal.style.display = 'none';
+        }
+
+        function updateKeyField() {
+            const model = modelSelect.value;
+            apiKeyInput.value = localStorage.getItem(model + 'ApiKey') || '';
+        }
+
+        function saveSettings() {
+            const model = modelSelect.value;
+            const key = apiKeyInput.value.trim();
+            localStorage.setItem('selectedModel', model);
+            localStorage.setItem(model + 'ApiKey', key);
+            closeSettings();
+            showNotification('Settings saved');
+        }
+
+        function getModel() { return localStorage.getItem('selectedModel') || 'gemini'; }
+        function getApiKey() { return localStorage.getItem(getModel() + 'ApiKey') || ''; }
+
+        async function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function generateCaption(imageFile) {
+            const model = getModel();
+            const apiKey = getApiKey();
+            if (!apiKey) throw new Error('API key missing - set in settings');
+
+            const base64 = await fileToBase64(imageFile);
+            let responseText = '';
+
+            if (model === 'gemini') {
+                const { GoogleGenerativeAI } = window['@google/generative-ai'];
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const genModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await genModel.generateContent([
+                    "Provide a detailed caption for this image suitable for AI training (e.g., LoRA). List comma-separated tags describing subject, style, quality, etc.",
+                    { inlineData: { mimeType: imageFile.type, data: base64.split(',')[1] } }
+                ]);
+                responseText = result.response.text();
+            } else {
+                const isGrok = model === 'grok';
+                const endpoint = isGrok ? 'https://api.x.ai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+                const modelName = isGrok ? 'grok-vision-latest' : 'gpt-4o';
+
+                const resp = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: modelName,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    { type: 'text', text: 'Provide a detailed caption for this image suitable for AI training (e.g., LoRA). List comma-separated tags describing subject, style, quality, etc.' },
+                                    { type: 'image_url', image_url: { url: base64 } }
+                                ]
+                            }
+                        ],
+                        max_tokens: 300
+                    })
+                });
+
+                if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+                const data = await resp.json();
+                responseText = data.choices[0].message.content;
+            }
+
+            return responseText.trim();
+        }
+
         const imageUpload = document.getElementById('image-upload');
         const zipUpload = document.getElementById('zip-upload');
         const imageGrid = document.getElementById('image-grid');
@@ -354,10 +370,10 @@
         const resetButton = document.getElementById('reset-button');
         const clearTagsButton = document.getElementById('clear-tags-button');
         const tagAllButton = document.getElementById('tag-all-button');
-        const captionAllButton = document.getElementById('caption-all-button'); 
+        const captionAllButton = document.getElementById('caption-all-button');
         const datasetNameInput = document.getElementById('dataset-name-input');
         const triggerWordInput = document.getElementById('trigger-word-input');
-        
+
         const loader = document.getElementById('loader');
         const loaderText = document.getElementById('loader-text');
         const previewModal = document.getElementById('preview-modal');
@@ -365,8 +381,7 @@
         const previewClose = document.getElementById('preview-close');
         const notification = document.getElementById('notification');
         const notificationText = document.getElementById('notification-text');
-        
-        // Tag Viewer References
+
         const tagViewerSection = document.getElementById('tag-viewer-section');
         const tagViewerHeader = document.getElementById('tag-viewer-header');
         const tagViewerContent = document.getElementById('tag-viewer-content');
@@ -374,7 +389,6 @@
         const tagViewerArrow = document.getElementById('tag-viewer-arrow');
         const totalTagsBadge = document.getElementById('total-tags-badge');
 
-        // Tag Settings Modal References
         const tagSettingsModal = document.getElementById('tag-settings-modal');
         const tagSettingsConfig = document.getElementById('tag-settings-config');
         const tagSettingsProgress = document.getElementById('tag-settings-progress');
@@ -387,7 +401,6 @@
         const toggleTagPromptBtn = document.getElementById('toggle-tag-prompt-btn');
         const tagSystemPrompt = document.getElementById('tag-system-prompt');
 
-        // Caption Settings Modal References
         const captionSettingsModal = document.getElementById('caption-settings-modal');
         const captionSettingsConfig = document.getElementById('caption-settings-config');
         const captionSettingsProgress = document.getElementById('caption-settings-progress');
@@ -400,7 +413,6 @@
         const toggleCaptionPromptBtn = document.getElementById('toggle-caption-prompt-btn');
         const captionSystemPrompt = document.getElementById('caption-system-prompt');
 
-        // Cropper elements
         const cropModal = document.getElementById('crop-modal');
         const cropImage = document.getElementById('crop-image');
         const cropSaveButton = document.getElementById('crop-save');
@@ -408,13 +420,10 @@
         let cropper = null;
         let currentCropIndex = -1;
 
-        // Global state
-        // dataset array items now have: { file, tags, type: 'tags'|'caption' }
         let dataset = []; 
         let currentTriggerWord = ""; 
         let isBatchProcessing = false; 
 
-        // Default Tag Prompt
         const DEFAULT_TAG_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
 Follow these rules strictly:
 1.  **Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
@@ -425,7 +434,6 @@ Follow these rules strictly:
 
 The final output MUST be a comma-separated list of tags.`;
 
-        // Default Caption Prompt
         const DEFAULT_CAPTION_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive caption for the provided image for the purpose of Lora training using tools like kohya_ss, OneTrainer or diffusion pipes. Follow these rules strictly:
 
 1. Information sufficiency: Captions should include all meaningful content and be comprehensive, especially for complex scenes that may be overlooked by general captions.
@@ -436,48 +444,33 @@ The final output MUST be a comma-separated list of tags.`;
 
 Expected outcome is a human-readable continuous text consisting of several sentences without the use of numbering or bullet points.`;
 
-        // Initialize system prompt textareas
         tagSystemPrompt.value = DEFAULT_TAG_PROMPT;
         captionSystemPrompt.value = DEFAULT_CAPTION_PROMPT;
 
-        // --- Event Listeners ---
         imageUpload.addEventListener('change', handleImageUpload);
         zipUpload.addEventListener('change', handleZipUpload);
         exportButton.addEventListener('click', handleExport);
         resetButton.addEventListener('click', handleReset);
-        clearTagsButton.addEventListener('click', handleClearTags); 
-        tagAllButton.addEventListener('click', openTagSettings); 
-        captionAllButton.addEventListener('click', openCaptionSettings); 
-        
-        // Tag Settings Listeners
+        clearTagsButton.addEventListener('click', handleClearTags);
+        tagAllButton.addEventListener('click', openTagSettings);
+        captionAllButton.addEventListener('click', openCaptionSettings);
         startTaggingBtn.addEventListener('click', startBatchTagging);
         cancelTaggingBtn.addEventListener('click', closeTagSettings);
         stopTaggingBtn.addEventListener('click', stopBatchProcessing);
-
-        toggleTagPromptBtn.addEventListener('click', () => {
-            tagSystemPrompt.classList.toggle('hidden');
-        });
-
-        // Caption Settings Listeners
+        toggleTagPromptBtn.addEventListener('click', () => tagSystemPrompt.classList.toggle('hidden'));
         startCaptioningBtn.addEventListener('click', startBatchCaptioning);
         cancelCaptioningBtn.addEventListener('click', closeCaptionSettings);
         stopCaptioningBtn.addEventListener('click', stopBatchProcessing);
-        toggleCaptionPromptBtn.addEventListener('click', () => {
-            captionSystemPrompt.classList.toggle('hidden');
-        });
-
+        toggleCaptionPromptBtn.addEventListener('click', () => captionSystemPrompt.classList.toggle('hidden'));
         previewClose.addEventListener('click', hidePreview);
         triggerWordInput.addEventListener('input', handleTriggerWordChange);
-
         tagViewerHeader.addEventListener('click', () => {
             tagViewerContent.classList.toggle('expanded');
             tagViewerArrow.classList.toggle('expanded');
         });
-
         previewModal.addEventListener('click', (e) => {
             if (e.target === previewModal) hidePreview();
         });
-        
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (!previewModal.classList.contains('hidden')) hidePreview();
@@ -486,12 +479,8 @@ Expected outcome is a human-readable continuous text consisting of several sente
                 if (!captionSettingsModal.classList.contains('hidden') && !isBatchProcessing) closeCaptionSettings();
             }
         });
-        
         cropSaveButton.addEventListener('click', saveCrop);
         cropCancelButton.addEventListener('click', cancelCrop);
-
-
-        // --- Tagging Modal Logic ---
 
         function openTagSettings() {
             if (dataset.length === 0) {
@@ -530,11 +519,6 @@ Expected outcome is a human-readable continuous text consisting of several sente
         }
 
         async function startBatchTagging() {
-            if (typeof userApiKey === 'undefined' || !userApiKey) {
-                showNotification("API Key is missing. Check config.js", 4000, true);
-                return;
-            }
-
             const maxTags = parseInt(settingMaxTags.value, 10) || 30;
             const mode = document.querySelector('input[name="tag-mode"]:checked').value;
             const customTagPrompt = tagSystemPrompt.value.trim() || DEFAULT_TAG_PROMPT;
@@ -548,7 +532,7 @@ Expected outcome is a human-readable continuous text consisting of several sente
             let processed = 0;
             const total = dataset.length;
             updateProgress(0, total, tagProgressBar, tagProgressText);
-            
+
             for (let i = 0; i < total; i++) {
                 if (!isBatchProcessing) break;
 
@@ -566,9 +550,7 @@ Expected outcome is a human-readable continuous text consisting of several sente
                 if (shouldTag) {
                     try {
                         const file = item.file;
-                        const base64Data = await imageToBase64(file);
-                        const newTagsString = await generateTagsWithGemini(base64Data, file.type, customTagPrompt);
-
+                        const newTagsString = await generateCaption(file);
                         if (newTagsString) {
                             let newTags = newTagsString.split(',').map(t => t.trim()).filter(Boolean);
                             let finalTags = [];
@@ -591,9 +573,8 @@ Expected outcome is a human-readable continuous text consisting of several sente
                                 finalTags = finalTags.slice(0, maxTags);
                             }
 
-                            // Update data
                             item.tags = finalTags.join(', ');
-                            item.type = 'tags'; // Set Type to Tags
+                            item.type = 'tags';
 
                             const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
                             if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, i);
@@ -614,11 +595,6 @@ Expected outcome is a human-readable continuous text consisting of several sente
         }
 
         async function startBatchCaptioning() {
-            if (typeof userApiKey === 'undefined' || !userApiKey) {
-                showNotification("API Key is missing. Check config.js", 4000, true);
-                return;
-            }
-
             const maxLength = parseInt(settingMaxCaptionLen.value, 10) || 50;
             const mode = document.querySelector('input[name="caption-mode"]:checked').value;
             const customPrompt = captionSystemPrompt.value.trim() || DEFAULT_CAPTION_PROMPT;
@@ -649,15 +625,13 @@ Expected outcome is a human-readable continuous text consisting of several sente
                 if (shouldCaption) {
                     try {
                         const file = item.file;
-                        const base64Data = await imageToBase64(file);
-                        const caption = await generateCaptionWithGemini(base64Data, file.type, customPrompt, maxLength);
+                        const caption = await generateCaption(file);
 
                         if (caption) {
                             let finalText = "";
                             if (mode === 'overwrite') {
                                 finalText = caption;
                             } else {
-                                // Append with a space for captions
                                 finalText = currentText ? currentText + " " + caption : caption;
                             }
                             
@@ -666,7 +640,7 @@ Expected outcome is a human-readable continuous text consisting of several sente
                             }
 
                             dataset[i].tags = finalText;
-                            dataset[i].type = 'caption'; // Set Type to Caption
+                            dataset[i].type = 'caption';
                             
                             const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
                             if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, i);
@@ -692,22 +666,16 @@ Expected outcome is a human-readable continuous text consisting of several sente
             textElement.textContent = `${current} / ${total}`;
         }
 
-
-        // --- Core Logic ---
-
         function handleTriggerWordChange(e) {
             const newTrigger = e.target.value.trim();
             dataset.forEach((item, index) => {
                 let currentText = item.tags.trim();
                 
-                // Remove old trigger word from start
                 if (currentTriggerWord && currentText.startsWith(currentTriggerWord)) {
-                    // Remove trigger word and following comma/space if present
                     currentText = currentText.substring(currentTriggerWord.length).trim();
                     if (currentText.startsWith(',')) currentText = currentText.substring(1).trim();
                 }
                 
-                // Add new trigger word
                 if (newTrigger) {
                     if (currentText) {
                         currentText = newTrigger + ", " + currentText;
@@ -755,7 +723,6 @@ Expected outcome is a human-readable continuous text consisting of several sente
                 }
                 
                 let initialTags = currentTriggerWord ? currentTriggerWord : "";
-                // Default type to 'tags'
                 newDatasetItems.push({ file: finalFile, tags: initialTags, type: 'tags' });
                 existingHashes.add(hash); 
             }
@@ -827,7 +794,6 @@ Expected outcome is a human-readable continuous text consisting of several sente
                         }
                     }
 
-                    // For existing zip, assume 'tags' type default, or maybe check for periods? Default safe is 'tags'.
                     newDatasetItems.push({ file: imageFile, tags: tags, type: 'tags' });
                     existingHashes.add(hash);
                 }
@@ -861,13 +827,7 @@ Expected outcome is a human-readable continuous text consisting of several sente
             if (!confirm("Are you sure you want to clear tags/captions from all images? Images will remain loaded.")) return;
             
             dataset.forEach(item => {
-                // If trigger word is set, keep it, otherwise clear all
-                if (currentTriggerWord) {
-                    item.tags = currentTriggerWord;
-                } else {
-                    item.tags = "";
-                }
-                // Reset type to default
+                item.tags = currentTriggerWord ? currentTriggerWord : "";
                 item.type = 'tags';
             });
             
@@ -886,12 +846,12 @@ Expected outcome is a human-readable continuous text consisting of several sente
             }
             if (shouldRenderSummary) renderTagViewer();
         }
-        
+
         function deleteTagGlobally(tagToDelete) {
             if (!confirm(`Are you sure you want to delete the tag "${tagToDelete}" from all images?`)) return;
 
             dataset.forEach((item, index) => {
-                if (item.type === 'caption') return; // Skip captions for global tag delete
+                if (item.type === 'caption') return;
                 let tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
                 if (tags.includes(tagToDelete)) {
                     tags = tags.filter(t => t !== tagToDelete);
@@ -952,7 +912,7 @@ Expected outcome is a human-readable continuous text consisting of several sente
                                         </svg>
                                         <span>Crop</span>
                                     </button>
-                                     <button class="autotag-single-button w-full flex items-center justify-center gap-2 text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
+                                    <button class="autotag-single-button w-full flex items-center justify-center gap-2 text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                         </svg>
@@ -968,470 +928,250 @@ Expected outcome is a human-readable continuous text consisting of several sente
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
-                                        <span>Delete</span>
+                                        <span>Remove</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     `;
 
-                    const resEl = card.querySelector(`#resolution-${index}`);
-                    const img = new Image();
-                    img.onload = () => {
-                        resEl.textContent = `${img.naturalWidth} x ${img.naturalHeight}`;
-                    };
-                    img.src = imageUrl;
-                    
-                    const tagAreaWrapper = card.querySelector('.tag-area-wrapper');
-                    renderTagsInCard(tagAreaWrapper, index);
-
-                    card.querySelector('.remove-btn').addEventListener('click', (e) => removeImage(index));
-                    card.querySelector('.thumbnail-container').addEventListener('click', () => showPreview(imageUrl));
-                    card.querySelector('.autotag-single-button').addEventListener('click', (e) => handleAutoTag(index));
-                    card.querySelector('.caption-single-button').addEventListener('click', (e) => handleSingleCaption(index)); // New
-                    card.querySelector('.crop-btn').addEventListener('click', () => startCropping(index));
-
                     imageGrid.appendChild(card);
+
+                    const img = card.querySelector('img');
+                    img.onload = () => {
+                        document.getElementById(`resolution-${index}`).textContent = `${img.naturalWidth} x ${img.naturalHeight}`;
+                    };
+
+                    renderTagsInCard(card.querySelector('.tag-area-wrapper'), index);
+
+                    card.querySelector('.thumbnail-container').addEventListener('click', () => showPreview(imageUrl));
+                    card.querySelector('.crop-btn').addEventListener('click', () => openCrop(index));
+                    card.querySelector('.autotag-single-button').addEventListener('click', () => autotagSingle(index));
+                    card.querySelector('.caption-single-button').addEventListener('click', () => captionSingle(index));
+                    card.querySelector('.remove-btn').addEventListener('click', () => removeImage(index));
                 });
+                renderTagViewer();
             } else {
                 taggerSection.classList.add('hidden');
                 tagViewerSection.classList.add('hidden');
                 placeholder.classList.remove('hidden');
                 imageGrid.classList.add('hidden');
             }
-            renderTagViewer();
-        }
-        
-        function renderTagsInCard(container, index) {
-            container.innerHTML = ''; 
-            const item = dataset[index];
-            const isCaptionMode = item.type === 'caption';
-
-            if (isCaptionMode) {
-                // Render Text Area for Caption Mode
-                const textarea = document.createElement('textarea');
-                textarea.className = 'w-full h-full bg-gray-900 text-gray-200 text-sm border-none outline-none resize-none p-2 rounded focus:ring-1 focus:ring-indigo-500';
-                textarea.placeholder = "Enter caption...";
-                textarea.value = item.tags;
-                textarea.addEventListener('input', (e) => {
-                    item.tags = e.target.value;
-                });
-                container.appendChild(textarea);
-                return;
-            }
-            
-            // Render Tags (Pills) with 'x' to remove
-            const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-
-            tags.forEach((tag, i) => {
-                const tagEl = document.createElement('div');
-                const isTrigger = i === 0 && currentTriggerWord && tag === currentTriggerWord;
-                const bgClass = isTrigger ? 'bg-purple-600' : 'bg-indigo-500';
-                
-                tagEl.className = `flex items-center ${bgClass} text-white text-xs px-2 py-1 rounded-full cursor-default select-none max-w-full`;
-                tagEl.innerHTML = `
-                    <span class="truncate max-w-[150px]" title="${tag}">${tag}</span>
-                    <button class="ml-2 text-indigo-100 hover:text-white remove-tag-btn font-bold flex-shrink-0">&times;</button>
-                `;
-                tagEl.querySelector('.remove-tag-btn').addEventListener('click', () => {
-                    const newTags = tags.filter((_, idx) => idx !== i);
-                    updateTags(index, newTags);
-                    renderTagsInCard(container, index); 
-                });
-                container.appendChild(tagEl);
-            });
-
-            const inputEl = document.createElement('input');
-            inputEl.type = 'text';
-            inputEl.placeholder = 'Add tag...';
-            inputEl.className = 'bg-transparent text-sm flex-grow p-1 focus:outline-none min-w-[80px]';
-            inputEl.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ',') {
-                    e.preventDefault();
-                    const newTag = inputEl.value.trim();
-                    if (newTag) {
-                        const current = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-                        // Check for duplicates before adding
-                        if (!current.includes(newTag)) {
-                            current.push(newTag);
-                            updateTags(index, current);
-                            renderTagsInCard(container, index);
-                        }
-                    }
-                    inputEl.value = '';
-                }
-            });
-            container.appendChild(inputEl);
-        }
-
-        function renderTagViewer() {
-            if (dataset.length === 0) {
-                tagViewerSection.classList.add('hidden');
-                tagViewerList.innerHTML = '';
-                return;
-            }
-
-            tagViewerSection.classList.remove('hidden');
-            
-            const tagCounts = {};
-            for (const item of dataset) {
-                if (item.type === 'caption') continue;
-
-                const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-                for (const tag of tags) {
-                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                }
-            }
-
-            const sortedTags = Object.entries(tagCounts).sort(([, a], [, b]) => b - a);
-            totalTagsBadge.textContent = `${sortedTags.length} tags`;
-            tagViewerList.innerHTML = ''; 
-            
-            if (sortedTags.length === 0) {
-                tagViewerList.innerHTML = '<p class="text-gray-500 w-full text-center">No tags found (or all images are in caption mode).</p>';
-                return;
-            }
-
-            sortedTags.forEach(([tag, count]) => {
-                const pill = document.createElement('div');
-                pill.className = 'flex items-center bg-gray-700 border border-gray-600 rounded-full px-3 py-1 text-sm hover:bg-gray-600 transition-colors';
-                pill.innerHTML = `
-                    <span class="text-gray-200 mr-2">${tag}</span>
-                    <span class="bg-gray-800 text-gray-400 text-xs px-1.5 py-0.5 rounded-full mr-2">${count}</span>
-                    <button class="text-gray-500 hover:text-red-400 font-bold delete-global-btn" title="Delete from all images">&times;</button>
-                `;
-                
-                pill.querySelector('.delete-global-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteTagGlobally(tag);
-                });
-                
-                tagViewerList.appendChild(pill);
-            });
         }
 
         async function handleExport() {
-            if (dataset.length === 0) return;
-            
-            const nameOfTheDataset = datasetNameInput.value.trim().replace(/[^a-zA-Z0-9_-]/g, '') || 'dataset';
-            if (!nameOfTheDataset && !datasetNameInput.value) {
-                datasetNameInput.focus();
-                datasetNameInput.classList.add('ring-2', 'ring-red-500');
-                setTimeout(() => datasetNameInput.classList.remove('ring-2', 'ring-red-500'), 2000);
+            if (dataset.length === 0) {
+                showNotification("No images to export.");
+                return;
             }
-            
-            const finalName = nameOfTheDataset || 'dataset';
 
-            showLoader('Zipping files...');
-            try {
-                const zip = new JSZip();
-                const folder = zip.folder(`1_${finalName}`);
-
-                dataset.forEach((item, index) => {
-                    const fileNumber = String(index + 1).padStart(3, '0');
-                    const newBaseName = `${finalName}${fileNumber}`;
-                    const newImageName = `${newBaseName}.jpg`;
-                    const newTxtName = `${newBaseName}.txt`;
-                    
-                    folder.file(newImageName, item.file);
-                    if (item.tags.trim() !== '') {
-                        folder.file(newTxtName, item.tags);
-                    }
-                });
-
-                const zipBlob = await zip.generateAsync({ type: 'blob' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(zipBlob);
-                link.download = `data-${finalName}.zip`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
-
-            } catch (error) {
-                console.error("Error exporting ZIP file:", error);
-            } finally {
-                hideLoader();
-            }
-        }
-
-        async function handleAutoTagAll() {
-            openTagSettings();
-        }
-
-        async function handleAutoTag(index) {
-            const button = document.querySelector(`.autotag-single-button[data-index='${index}']`);
-            if (!button) return;
-
-            const originalContent = button.innerHTML;
-            button.innerHTML = '<div class="spinner"></div>';
-            button.disabled = true;
-
-            try {
-                const file = dataset[index].file;
-                const base64Data = await imageToBase64(file);
-                const customTagPrompt = tagSystemPrompt.value.trim() || DEFAULT_TAG_PROMPT;
-                const generatedTagsString = await generateTagsWithGemini(base64Data, file.type, customTagPrompt);
-                
-                if (generatedTagsString) {
-                    const existingTags = dataset[index].tags ? dataset[index].tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-                    const newTags = generatedTagsString.split(',').map(t => t.trim()).filter(Boolean);
-                    
-                    let combinedTags = [...new Set([...existingTags, ...newTags])];
-
-                    if (currentTriggerWord) {
-                        combinedTags = combinedTags.filter(t => t !== currentTriggerWord);
-                        combinedTags.unshift(currentTriggerWord);
-                    }
-                    
-                    if (combinedTags.length > 30) {
-                        combinedTags = combinedTags.slice(0, 30);
-                    }
-
-                    updateTags(index, combinedTags);
-                    dataset[index].type = 'tags'; // Force type
-                    
-                    const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-                    if (tagAreaWrapper) {
-                        renderTagsInCard(tagAreaWrapper, index);
-                    }
-                }
-            } catch (error) {
-                console.error(`Failed to auto-tag image ${index}:`, error);
-            } finally {
-                button.innerHTML = originalContent;
-                button.disabled = false;
-            }
-        }
-
-        // --- Single Caption Logic ---
-        async function handleSingleCaption(index) {
-            const button = document.querySelector(`.caption-single-button[data-index='${index}']`);
-            if (!button) return;
-
-            const originalContent = button.innerHTML;
-            button.innerHTML = '<div class="spinner"></div>';
-            button.disabled = true;
-
-            try {
-                const file = dataset[index].file;
-                const base64Data = await imageToBase64(file);
-                // For single caption, assume default prompt and max len 75, simple append
-                const caption = await generateCaptionWithGemini(base64Data, file.type, DEFAULT_CAPTION_PROMPT, 75);
-                
-                if (caption) {
-                    let currentText = dataset[index].tags;
-                    let finalText = currentText ? currentText + " " + caption : caption;
-                    
-                    if (currentTriggerWord && !finalText.startsWith(currentTriggerWord)) {
-                        finalText = currentTriggerWord + ", " + finalText;
-                    }
-
-                    dataset[index].tags = finalText;
-                    dataset[index].type = 'caption'; // Force type
-
-                    const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-                    if (tagAreaWrapper) {
-                        renderTagsInCard(tagAreaWrapper, index);
-                    }
-                }
-            } catch (error) {
-                console.error(`Failed to caption image ${index}:`, error);
-            } finally {
-                button.innerHTML = originalContent;
-                button.disabled = false;
-            }
-        }
-
-        function startCropping(index) {
-            currentCropIndex = index;
-            const file = dataset[index].file;
-            const imageUrl = URL.createObjectURL(file);
-            
-            cropImage.src = imageUrl;
-            cropModal.classList.remove('hidden');
-
-            cropper = new Cropper(cropImage, {
-                aspectRatio: NaN,
-                viewMode: 1,
-                background: false,
-                autoCropArea: 0.8,
+            const jszip = new JSZip();
+            dataset.forEach((item) => {
+                jszip.file(item.file.name, item.file);
+                jszip.file(item.file.name.replace(/\.(jpg|png|webp)$/, '.txt'), item.tags);
             });
+
+            const zipBlob = await jszip.generateAsync({ type: 'blob' });
+            const datasetName = datasetNameInput.value.trim() || 'dataset';
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(zipBlob);
+            link.download = `${datasetName}.zip`;
+            link.click();
+
+            showNotification("Dataset exported as ZIP.");
         }
 
-        function saveCrop() {
-            if (!cropper || currentCropIndex < 0) return;
-
-            showLoader('Cropping image...');
-            const originalFile = dataset[currentCropIndex].file;
-
-            cropper.getCroppedCanvas().toBlob(async (blob) => {
-                const newFile = new File([blob], originalFile.name, { type: 'image/jpeg' });
-                dataset[currentCropIndex].file = newFile;
-                
-                cropper.destroy();
-                cropper = null;
-                cropImage.src = '';
-                cropModal.classList.add('hidden');
-                currentCropIndex = -1;
-                
-                hideLoader();
-                render(); 
-            }, 'image/jpeg', 0.95);
+        function showLoader(text) {
+            loaderText.textContent = text || 'Processing...';
+            loader.style.display = 'flex';
         }
 
-        function cancelCrop() {
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-            cropImage.src = '';
-            cropModal.classList.add('hidden');
-            currentCropIndex = -1;
+        function hideLoader() {
+            loader.style.display = 'none';
         }
 
-        function imageToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function calculateFileHash(file) {
-            const buffer = await file.arrayBuffer();
-            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
-        }
-        
-        async function generateTagsWithGemini(base64ImageData, mimeType, customPrompt) {
-            if (typeof userApiKey === 'undefined' || !userApiKey) {
-                showNotification("API Key is missing. Please add it to config.js.", 5000, true);
-                throw new Error("API Key is missing.");
-            }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
-
-            const systemPrompt = (customPrompt && customPrompt.trim().length > 0)
-                ? customPrompt.trim()
-                : DEFAULT_TAG_PROMPT;
-
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: systemPrompt },
-                        { inlineData: { mimeType: mimeType, data: base64ImageData } }
-                    ]
-                }]
-            };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}: ${await response.text()}`);
-                }
-                
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (text) {
-                    return text.trim();
-                }
-                return null;
-            } catch (error) {
-                console.error("Gemini API call failed:", error);
-                return null;
-            }
-        }
-
-        async function generateCaptionWithGemini(base64ImageData, mimeType, customPrompt, maxLength) {
-            if (typeof userApiKey === 'undefined' || !userApiKey) {
-                showNotification("API Key is missing. Please add it to config.js.", 5000, true);
-                throw new Error("API Key is missing.");
-            }
-
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
-
-            const finalPrompt = `${customPrompt} Keep the description strictly under ${maxLength} words.`;
-
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: finalPrompt },
-                        { inlineData: { mimeType: mimeType, data: base64ImageData } }
-                    ]
-                }]
-            };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}: ${await response.text()}`);
-                }
-                
-                const result = await response.json();
-                let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-                text = text.trim();
-
-                // HARD ENFORCED WORD LIMIT
-                const words = text.split(/\s+/);
-                if (words.length > maxLength) {
-                    text = words.slice(0, maxLength).join(" ");
-                }
-
-                return text;
-
-            } catch (error) {
-                console.error("TagPilot Captioning API call failed:", error);
-                return null;
-            }
-        }
-
-        function showPreview(imageUrl) {
-            previewImage.src = imageUrl;
-            previewModal.classList.remove('hidden');
-        }
-
-        function hidePreview() {
-            previewImage.src = '';
-            previewModal.classList.add('hidden');
-        }
-        
-        function showNotification(message, duration = 4000, isError = false) {
-            notificationText.textContent = message;
-            notification.classList.toggle('bg-red-600', isError);
-            notification.classList.toggle('bg-yellow-500', !isError);
+        function showNotification(text, duration = 3000) {
+            notificationText.textContent = text;
             notification.classList.remove('hidden', 'translate-x-full');
-
+            notification.classList.add('translate-x-0');
             setTimeout(() => {
                 notification.classList.add('translate-x-full');
             }, duration);
         }
 
-        function showLoader(message) {
-            loaderText.textContent = message;
-            loader.classList.remove('hidden');
+        async function calculateFileHash(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        function hideLoader() {
-            loader.classList.add('hidden');
+        function renderTagViewer() {
+            tagViewerList.innerHTML = '';
+            const tagMap = new Map();
+            dataset.forEach(item => {
+                if (item.type === 'caption') return;
+                item.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(tag => {
+                    tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+                });
+            });
+
+            const sortedTags = [...tagMap.entries()].sort((a, b) => b[1] - a[1]);
+
+            sortedTags.forEach(([tag, count]) => {
+                const pill = document.createElement('span');
+                pill.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300 cursor-pointer hover:bg-gray-600';
+                pill.innerHTML = `
+                    ${tag}
+                    <span class="ml-1 text-gray-500">(${count})</span>
+                    <button class="ml-2 text-gray-500 hover:text-red-500" onclick="deleteTagGlobally('${tag.replace(/'/g, "\\'")}')">
+                        ×
+                    </button>
+                `;
+                tagViewerList.appendChild(pill);
+            });
+
+            totalTagsBadge.textContent = `${sortedTags.length} tags`;
+        }
+
+        function renderTagsInCard(wrapper, index) {
+            wrapper.innerHTML = '';
+            const item = dataset[index];
+
+            if (item.type === 'caption') {
+                const textarea = document.createElement('textarea');
+                textarea.value = item.tags;
+                textarea.className = 'w-full h-full bg-transparent text-gray-300 text-sm outline-none resize-none';
+                textarea.oninput = (e) => {
+                    item.tags = e.target.value;
+                    renderTagViewer();
+                };
+                wrapper.appendChild(textarea);
+            } else {
+                const tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
+                tags.forEach((tag, tagIndex) => {
+                    const tagPill = document.createElement('span');
+                    tagPill.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-600 text-gray-300 cursor-move';
+                    tagPill.draggable = true;
+                    tagPill.innerHTML = `
+                        ${tag}
+                        <button class="ml-1 text-gray-500 hover:text-red-500" onclick="removeTagFromImage(${index}, ${tagIndex})">
+                            ×
+                        </button>
+                    `;
+                    wrapper.appendChild(tagPill);
+                });
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Add tag...';
+                input.className = 'bg-transparent text-gray-300 text-sm outline-none flex-grow min-w-[100px]';
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const newTag = e.target.value.trim();
+                        if (newTag) {
+                            tags.push(newTag);
+                            item.tags = tags.join(', ');
+                            renderTagsInCard(wrapper, index);
+                            input.value = '';
+                            renderTagViewer();
+                        }
+                    }
+                };
+                wrapper.appendChild(input);
+            }
+        }
+
+        function removeTagFromImage(index, tagIndex) {
+            const item = dataset[index];
+            const tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
+            tags.splice(tagIndex, 1);
+            item.tags = tags.join(', ');
+            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
+            renderTagsInCard(tagAreaWrapper, index);
+            renderTagViewer();
+        }
+
+        async function autotagSingle(index) {
+            const item = dataset[index];
+            const currentTags = item.tags.trim();
+            const newTagsString = await generateCaption(item.file);
+            if (newTagsString) {
+                let newTags = newTagsString.split(',').map(t => t.trim()).filter(Boolean);
+                let finalTags = [...new Set([...currentTags.split(',').map(t => t.trim()).filter(Boolean), ...newTags])];
+                if (currentTriggerWord) {
+                    finalTags = finalTags.filter(t => t !== currentTriggerWord);
+                    finalTags.unshift(currentTriggerWord);
+                }
+                item.tags = finalTags.join(', ');
+                item.type = 'tags';
+                const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
+                renderTagsInCard(tagAreaWrapper, index);
+                renderTagViewer();
+                showNotification("Image tagged.");
+            }
+        }
+
+        async function captionSingle(index) {
+            const item = dataset[index];
+            const currentText = item.tags.trim();
+            const caption = await generateCaption(item.file);
+            if (caption) {
+                let finalText = currentText ? currentText + " " + caption : caption;
+                if (currentTriggerWord && !finalText.startsWith(currentTriggerWord)) {
+                    finalText = currentTriggerWord + ", " + finalText;
+                }
+                item.tags = finalText;
+                item.type = 'caption';
+                const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
+                renderTagsInCard(tagAreaWrapper, index);
+                renderTagViewer();
+                showNotification("Image captioned.");
+            }
+        }
+
+        function openCrop(index) {
+            currentCropIndex = index;
+            const imageUrl = URL.createObjectURL(dataset[index].file);
+            cropImage.src = imageUrl;
+            cropModal.style.display = 'flex';
+            cropper = new Cropper(cropImage, {
+                aspectRatio: NaN,
+                viewMode: 1,
+            });
+        }
+
+        async function saveCrop() {
+            if (cropper) {
+                const croppedCanvas = cropper.getCroppedCanvas();
+                const blob = await new Promise(resolve => croppedCanvas.toBlob(resolve));
+                const item = dataset[currentCropIndex];
+                item.file = new File([blob], item.file.name, { type: item.file.type });
+                cropper.destroy();
+                cropper = null;
+                cropModal.style.display = 'none';
+                render();
+                showNotification("Image cropped.");
+            }
+        }
+
+        function cancelCrop() {
+            if (cropper) cropper.destroy();
+            cropper = null;
+            cropModal.style.display = 'none';
+        }
+
+        function showPreview(url) {
+            previewImage.src = url;
+            previewModal.style.display = 'flex';
+        }
+
+        function hidePreview() {
+            previewModal.style.display = 'none';
         }
 
         render();
-
     </script>
 </body>
 </html>
