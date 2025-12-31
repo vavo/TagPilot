@@ -1,5 +1,7 @@
 # **TagPilot v1.5 ✈️ (Your Co-Pilot for LoRA Dataset Domination)**
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-vavo-5F7FFF?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white)](https://www.buymeacoffee.com/vavo)
+
 **The browser-based beast that turns chaotic image piles into perfectly tagged, ready-to-train datasets – faster than you can say "trigger word activated!"**
 
 ![TagPilot UI](https://i.ibb.co/whbs8by3/tagpilot-gui.png)
