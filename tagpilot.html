@@ -6,7 +6,6 @@
     <title>TagPilot ✈️</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
@@ -16,20 +15,14 @@
         ::-webkit-scrollbar-track { background: #2d3748; }
         ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #718096; }
-        .tooltip { position: relative; display: inline-block; }
-        .tooltip .tooltiptext { visibility: hidden; width: 220px; background-color: #2d3748; color: #fff; text-align: center; border-radius: 6px; padding: 5px 10px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 0.8rem; }
-        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
-        .spinner { border: 2px solid #f3f3f3; border-top: 2px solid #5a67d8; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .cropper-container { margin: auto; }
-        .collapsible-content { transition: max-height 0.3s ease-out; max-height: 0; overflow: hidden; }
-        .collapsible-content.expanded { max-height: 1000px; overflow-y: auto; }
-        .rotate-icon { transition: transform 0.3s ease; }
-        .rotate-icon.expanded { transform: rotate(180deg); }
         .settings-icon { position: fixed; top: 10px; right: 10px; font-size: 32px; cursor: pointer; z-index: 1000; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: #1f2937; padding: 24px; border-radius: 12px; width: 320px; color: white; }
         .close { float: right; cursor: pointer; font-size: 24px; }
+        .collapsible-content { transition: max-height 0.3s ease-out; max-height: 0; overflow: hidden; }
+        .collapsible-content.expanded { max-height: 1000px; overflow-y: auto; }
+        .rotate-icon { transition: transform 0.3s ease; }
+        .rotate-icon.expanded { transform: rotate(180deg); }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -47,9 +40,19 @@
                 <option value="gemini">Gemini</option>
                 <option value="grok">Grok</option>
                 <option value="openai">OpenAI</option>
+                <option value="deepdanbooru">DeepDanbooru</option>
+                <option value="wd14">WD1.4 Tagger</option>
             </select>
-            <label class="block mb-2">API Key:</label>
+            <label class="block mb-2 api-key-label">API Key for chosen model:</label>
             <input type="password" id="apiKeyInput" class="w-full bg-gray-700 p-2 rounded mb-4">
+            <label class="block mb-2 dd-threshold-label" style="display:none;">DeepDanbooru Threshold (0-1):</label>
+            <input type="number" id="ddThreshold" min="0" max="1" step="0.05" value="0.5" class="w-full bg-gray-700 p-2 rounded mb-4" style="display:none;">
+            <label class="block mb-2 wd-apikey-label" style="display:none;">Replicate API Key (WD1.4):</label>
+            <input type="password" id="wdApiKeyInput" class="w-full bg-gray-700 p-2 rounded mb-4" style="display:none;">
+            <label class="block mb-2 wd-general-label" style="display:none;">WD1.4 General Threshold (0-1):</label>
+            <input type="number" id="wdGeneralThresh" min="0" max="1" step="0.05" value="0.35" class="w-full bg-gray-700 p-2 rounded mb-4" style="display:none;">
+            <label class="block mb-2 wd-char-label" style="display:none;">WD1.4 Character Threshold (0-1):</label>
+            <input type="number" id="wdCharThresh" min="0" max="1" step="0.05" value="0.85" class="w-full bg-gray-700 p-2 rounded mb-4" style="display:none;">
             <button id="saveSettings" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded">Save</button>
         </div>
     </div>
@@ -70,7 +73,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
                 <div>
                     <label for="image-upload" class="w-full h-full flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-indigo-600 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-all">
-                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         <span class="font-semibold">Upload Photos</span>
                         <span class="text-sm text-gray-400">Select individual image files</span>
                     </label>
@@ -78,7 +81,7 @@
                 </div>
                 <div>
                     <label for="zip-upload" class="w-full h-full flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-indigo-600 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-all">
-                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span class="font-semibold">Upload ZIP Dataset</span>
                         <span class="text-sm text-gray-400">.zip file with images and .txt files</span>
                     </label>
@@ -129,8 +132,7 @@
                 </div>
             </div>
 
-            <div id="image-grid" class="grid grid-cols-1 gap-6">
-            </div>
+            <div id="image-grid" class="grid grid-cols-1 gap-6"></div>
             <div id="placeholder" class="text-center py-20 bg-gray-800 rounded-lg">
                 <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
@@ -261,105 +263,43 @@
     </div>
 
     <script>
-        // Settings
+        let dataset = [];
+        let currentTriggerWord = "";
+        let isBatchProcessing = false;
+        let cropper = null;
+        let currentCropIndex = -1;
+
+        const DEFAULT_TAG_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
+Follow these rules strictly:
+1.  Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
+2.  Avoid Noise:** Do NOT use generic, low-impact tags like 'solo', '1girl', 'looking at viewer', 'realistic', 'photorealistic'.
+3.  Prioritize Impact:** List the most descriptive and important tags first.
+4.  Balance Character and Context:** Aim for approximately two-thirds of the tags describing the character (person, clothing, hair, accessories) and one-third describing the background, composition, and lighting (e.g., 'outdoors', 'city street at night', 'soft lighting').
+5.  Be Concise and Specific:** Avoid redundant tags. For example, use 'blue eyes' instead of 'blue color, eyes'.
+
+The final output MUST be a comma-separated list of tags. No comments, no 'Here is:', no 'Let me know..'. Just a list of comma separated tags.`;
+
+        const DEFAULT_CAPTION_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive caption for the provided image for the purpose of Lora training using tools like kohya_ss, OneTrainer or diffusion pipes. Follow these rules strictly:
+
+1. Information sufficiency: Captions should include all meaningful content and be comprehensive, especially for complex scenes that may be overlooked by general captions.
+2. Minimal redundancy: Captions should be concise and avoid unnecessary repetition of information.
+3. Human comprehensibility: Captions should be phrased naturally using correct spelling, grammar, and punctuation to be easily understood by humans.
+4. Grounded descriptions: For more specific tasks, provide region-specific captions that describe a particular area of the image defined by a bounding box, rather than just the general scene.
+5. Variety: Ensure a diverse set of captions for each image, including both general descriptions and more detailed ones, to provide richer training data.
+
+Expected outcome is a human-readable continuous text consisting of several sentences without the use of numbering or bullet points.`;
+
+        // DOM elements
         const settingsIcon = document.getElementById('settings-icon');
         const settingsModal = document.getElementById('settingsModal');
         const closeSettingsBtn = document.getElementById('closeSettings');
         const modelSelect = document.getElementById('modelSelect');
         const apiKeyInput = document.getElementById('apiKeyInput');
+        const wdApiKeyInput = document.getElementById('wdApiKeyInput');
+        const ddThreshold = document.getElementById('ddThreshold');
+        const wdGeneralThresh = document.getElementById('wdGeneralThresh');
+        const wdCharThresh = document.getElementById('wdCharThresh');
         const saveSettingsBtn = document.getElementById('saveSettings');
-
-        settingsIcon.addEventListener('click', openSettings);
-        closeSettingsBtn.addEventListener('click', closeSettings);
-        saveSettingsBtn.addEventListener('click', saveSettings);
-        modelSelect.addEventListener('change', updateKeyField);
-
-        function openSettings() {
-            settingsModal.style.display = 'flex';
-            modelSelect.value = localStorage.getItem('selectedModel') || 'gemini';
-            updateKeyField();
-        }
-
-        function closeSettings() {
-            settingsModal.style.display = 'none';
-        }
-
-        function updateKeyField() {
-            const model = modelSelect.value;
-            apiKeyInput.value = localStorage.getItem(model + 'ApiKey') || '';
-        }
-
-        function saveSettings() {
-            const model = modelSelect.value;
-            const key = apiKeyInput.value.trim();
-            localStorage.setItem('selectedModel', model);
-            localStorage.setItem(model + 'ApiKey', key);
-            closeSettings();
-            showNotification('Settings saved');
-        }
-
-        function getModel() { return localStorage.getItem('selectedModel') || 'gemini'; }
-        function getApiKey() { return localStorage.getItem(getModel() + 'ApiKey') || ''; }
-
-        async function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function generateCaption(imageFile) {
-            const model = getModel();
-            const apiKey = getApiKey();
-            if (!apiKey) throw new Error('API key missing - set in settings');
-
-            const base64 = await fileToBase64(imageFile);
-            let responseText = '';
-
-            if (model === 'gemini') {
-                const { GoogleGenerativeAI } = window['@google/generative-ai'];
-                const genAI = new GoogleGenerativeAI(apiKey);
-                const genModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                const result = await genModel.generateContent([
-                    "Provide a detailed caption for this image suitable for AI training (e.g., LoRA). List comma-separated tags describing subject, style, quality, etc.",
-                    { inlineData: { mimeType: imageFile.type, data: base64.split(',')[1] } }
-                ]);
-                responseText = result.response.text();
-            } else {
-                const isGrok = model === 'grok';
-                const endpoint = isGrok ? 'https://api.x.ai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-                const modelName = isGrok ? 'grok-vision-latest' : 'gpt-4o';
-
-                const resp = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: modelName,
-                        messages: [
-                            {
-                                role: 'user',
-                                content: [
-                                    { type: 'text', text: 'Provide a detailed caption for this image suitable for AI training (e.g., LoRA). List comma-separated tags describing subject, style, quality, etc.' },
-                                    { type: 'image_url', image_url: { url: base64 } }
-                                ]
-                            }
-                        ],
-                        max_tokens: 300
-                    })
-                });
-
-                if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-                const data = await resp.json();
-                responseText = data.choices[0].message.content;
-            }
-
-            return responseText.trim();
-        }
 
         const imageUpload = document.getElementById('image-upload');
         const zipUpload = document.getElementById('zip-upload');
@@ -417,35 +357,15 @@
         const cropImage = document.getElementById('crop-image');
         const cropSaveButton = document.getElementById('crop-save');
         const cropCancelButton = document.getElementById('crop-cancel');
-        let cropper = null;
-        let currentCropIndex = -1;
-
-        let dataset = []; 
-        let currentTriggerWord = ""; 
-        let isBatchProcessing = false; 
-
-        const DEFAULT_TAG_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive tags for the provided image for the purpose of SDXL lora training using kohya_ss.
-Follow these rules strictly:
-1.  **Focus on Unique Features:** Prioritize tags that describe the subject's unique identity, specific clothing (e.g., 'blue denim jacket', not just 'jacket'), hairstyle and color, distinct facial features (e.g., 'freckles', 'defined jawline'), and overall style cues (e.g., 'goth style', 'business casual').
-2.  **Avoid Noise:** Do NOT use generic, low-impact tags like 'solo', '1girl', 'looking at viewer', 'realistic', 'photorealistic'.
-3.  **Prioritize Impact:** List the most descriptive and important tags first.
-4.  **Balance Character and Context:** Aim for approximately two-thirds of the tags describing the character (person, clothing, hair, accessories) and one-third describing the background, composition, and lighting (e.g., 'outdoors', 'city street at night', 'soft lighting').
-5.  **Be Concise and Specific:** Avoid redundant tags. For example, use 'blue eyes' instead of 'blue color, eyes'.
-
-The final output MUST be a comma-separated list of tags.`;
-
-        const DEFAULT_CAPTION_PROMPT = `You are an expert for creating photorealistic AI training datasets. Your task is to generate descriptive caption for the provided image for the purpose of Lora training using tools like kohya_ss, OneTrainer or diffusion pipes. Follow these rules strictly:
-
-1. Information sufficiency: Captions should include all meaningful content and be comprehensive, especially for complex scenes that may be overlooked by general captions.
-2. Minimal redundancy: Captions should be concise and avoid unnecessary repetition of information.
-3. Human comprehensibility: Captions should be phrased naturally using correct spelling, grammar, and punctuation to be easily understood by humans.
-4. Grounded descriptions: For more specific tasks, provide region-specific captions that describe a particular area of the image defined by a bounding box, rather than just the general scene.
-5. Variety: Ensure a diverse set of captions for each image, including both general descriptions and more detailed ones, to provide richer training data.
-
-Expected outcome is a human-readable continuous text consisting of several sentences without the use of numbering or bullet points.`;
 
         tagSystemPrompt.value = DEFAULT_TAG_PROMPT;
         captionSystemPrompt.value = DEFAULT_CAPTION_PROMPT;
+
+        // Event listeners
+        settingsIcon.addEventListener('click', openSettings);
+        closeSettingsBtn.addEventListener('click', closeSettings);
+        saveSettingsBtn.addEventListener('click', saveSettings);
+        modelSelect.addEventListener('change', updateSettingsFields);
 
         imageUpload.addEventListener('change', handleImageUpload);
         zipUpload.addEventListener('change', handleZipUpload);
@@ -468,236 +388,169 @@ Expected outcome is a human-readable continuous text consisting of several sente
             tagViewerContent.classList.toggle('expanded');
             tagViewerArrow.classList.toggle('expanded');
         });
-        previewModal.addEventListener('click', (e) => {
-            if (e.target === previewModal) hidePreview();
-        });
+        previewModal.addEventListener('click', (e) => e.target === previewModal && hidePreview());
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                if (!previewModal.classList.contains('hidden')) hidePreview();
-                if (!cropModal.classList.contains('hidden')) cancelCrop();
-                if (!tagSettingsModal.classList.contains('hidden') && !isBatchProcessing) closeTagSettings();
-                if (!captionSettingsModal.classList.contains('hidden') && !isBatchProcessing) closeCaptionSettings();
+                hidePreview();
+                cancelCrop();
+                if (!isBatchProcessing) {
+                    closeTagSettings();
+                    closeCaptionSettings();
+                }
             }
         });
         cropSaveButton.addEventListener('click', saveCrop);
         cropCancelButton.addEventListener('click', cancelCrop);
 
-        function openTagSettings() {
-            if (dataset.length === 0) {
-                showNotification("No images loaded to tag.", 3000);
-                return;
-            }
-            tagSettingsConfig.classList.remove('hidden');
-            tagSettingsProgress.classList.add('hidden');
-            tagSettingsModal.classList.remove('hidden');
+        // Settings functions
+        function updateSettingsFields() {
+            const model = modelSelect.value;
+            const isLLM = ['gemini', 'grok', 'openai'].includes(model);
+            const isDD = model === 'deepdanbooru';
+            const isWD = model === 'wd14';
+
+            document.querySelectorAll('.api-key-label, #apiKeyInput').forEach(el => el.style.display = isLLM ? 'block' : 'none');
+            document.querySelectorAll('.dd-threshold-label, #ddThreshold').forEach(el => el.style.display = isDD ? 'block' : 'none');
+            document.querySelectorAll('.wd-apikey-label, #wdApiKeyInput, .wd-general-label, #wdGeneralThresh, .wd-char-label, #wdCharThresh').forEach(el => el.style.display = isWD ? 'block' : 'none');
         }
 
-        function closeTagSettings() {
-            tagSettingsModal.classList.add('hidden');
+        function openSettings() {
+            settingsModal.style.display = 'flex';
+            modelSelect.value = localStorage.getItem('selectedModel') || 'gemini';
+            apiKeyInput.value = localStorage.getItem(modelSelect.value + 'ApiKey') || '';
+            wdApiKeyInput.value = localStorage.getItem('wd14ApiKey') || '';
+            ddThreshold.value = localStorage.getItem('ddThreshold') || '0.5';
+            wdGeneralThresh.value = localStorage.getItem('wdGeneralThresh') || '0.35';
+            wdCharThresh.value = localStorage.getItem('wdCharThresh') || '0.85';
+            updateSettingsFields();
         }
 
-        function openCaptionSettings() {
-            if (dataset.length === 0) {
-                showNotification("No images loaded to caption.", 3000);
-                return;
-            }
-            captionSettingsConfig.classList.remove('hidden');
-            captionSettingsProgress.classList.add('hidden');
-            captionSettingsModal.classList.remove('hidden');
+        function closeSettings() {
+            settingsModal.style.display = 'none';
         }
 
-        function closeCaptionSettings() {
-            captionSettingsModal.classList.add('hidden');
+        function saveSettings() {
+            const model = modelSelect.value;
+            localStorage.setItem('selectedModel', model);
+            if (['gemini', 'grok', 'openai'].includes(model)) localStorage.setItem(model + 'ApiKey', apiKeyInput.value.trim());
+            if (model === 'wd14') localStorage.setItem('wd14ApiKey', wdApiKeyInput.value.trim());
+            localStorage.setItem('ddThreshold', ddThreshold.value);
+            localStorage.setItem('wdGeneralThresh', wdGeneralThresh.value);
+            localStorage.setItem('wdCharThresh', wdCharThresh.value);
+            closeSettings();
+            showNotification('Settings saved');
         }
 
-        function stopBatchProcessing() {
-            isBatchProcessing = false;
-            stopTaggingBtn.textContent = "Stopping...";
-            stopTaggingBtn.disabled = true;
-            stopCaptioningBtn.textContent = "Stopping...";
-            stopCaptioningBtn.disabled = true;
-        }
+        function getModel() { return localStorage.getItem('selectedModel') || 'gemini'; }
+        function getApiKey() { return localStorage.getItem(getModel() + 'ApiKey') || ''; }
+        function getWDKey() { return localStorage.getItem('wd14ApiKey') || ''; }
 
-        async function startBatchTagging() {
-            const maxTags = parseInt(settingMaxTags.value, 10) || 30;
-            const mode = document.querySelector('input[name="tag-mode"]:checked').value;
-            const customTagPrompt = tagSystemPrompt.value.trim() || DEFAULT_TAG_PROMPT;
-
-            tagSettingsConfig.classList.add('hidden');
-            tagSettingsProgress.classList.remove('hidden');
-            stopTaggingBtn.textContent = "Stop";
-            stopTaggingBtn.disabled = false;
-            isBatchProcessing = true;
-
-            let processed = 0;
-            const total = dataset.length;
-            updateProgress(0, total, tagProgressBar, tagProgressText);
-
-            for (let i = 0; i < total; i++) {
-                if (!isBatchProcessing) break;
-
-                const item = dataset[i];
-                const currentTags = item.tags.trim();
-                
-                let shouldTag = false;
-                if (mode === 'overwrite') shouldTag = true;
-                else if (mode === 'append') shouldTag = true; 
-                else if (mode === 'ignore') {
-                    const hasTags = currentTags.length > 0 && currentTags !== currentTriggerWord;
-                    if (!hasTags) shouldTag = true;
-                }
-
-                if (shouldTag) {
-                    try {
-                        const file = item.file;
-                        const newTagsString = await generateCaption(file);
-                        if (newTagsString) {
-                            let newTags = newTagsString.split(',').map(t => t.trim()).filter(Boolean);
-                            let finalTags = [];
-
-                            if (mode === 'overwrite') {
-                                finalTags = newTags;
-                            } else {
-                                const existing = currentTags.split(',').map(t => t.trim()).filter(Boolean);
-                                finalTags = [...existing, ...newTags];
-                            }
-
-                            finalTags = [...new Set(finalTags)];
-
-                            if (currentTriggerWord) {
-                                finalTags = finalTags.filter(t => t !== currentTriggerWord);
-                                finalTags.unshift(currentTriggerWord);
-                            }
-
-                            if (finalTags.length > maxTags) {
-                                finalTags = finalTags.slice(0, maxTags);
-                            }
-
-                            item.tags = finalTags.join(', ');
-                            item.type = 'tags';
-
-                            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
-                            if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, i);
-                        }
-                    } catch (e) {
-                        console.error(`Error tagging image ${i}`, e);
-                    }
-                }
-
-                processed++;
-                updateProgress(processed, total, tagProgressBar, tagProgressText);
-            }
-
-            renderTagViewer(); 
-            isBatchProcessing = false;
-            closeTagSettings();
-            showNotification(processed === total ? "Tagging Complete!" : "Tagging Stopped.");
-        }
-
-        async function startBatchCaptioning() {
-            const maxLength = parseInt(settingMaxCaptionLen.value, 10) || 50;
-            const mode = document.querySelector('input[name="caption-mode"]:checked').value;
-            const customPrompt = captionSystemPrompt.value.trim() || DEFAULT_CAPTION_PROMPT;
-
-            captionSettingsConfig.classList.add('hidden');
-            captionSettingsProgress.classList.remove('hidden');
-            stopCaptioningBtn.textContent = "Stop";
-            stopCaptioningBtn.disabled = false;
-            isBatchProcessing = true;
-
-            let processed = 0;
-            const total = dataset.length;
-            updateProgress(0, total, captionProgressBar, captionProgressText);
-            
-            for (let i = 0; i < total; i++) {
-                if (!isBatchProcessing) break;
-
-                const item = dataset[i];
-                const currentText = item.tags.trim();
-                
-                let shouldCaption = false;
-                if (mode === 'overwrite') shouldCaption = true;
-                else if (mode === 'append') shouldCaption = true;
-                else if (mode === 'ignore') {
-                    if (currentText.length === 0 || currentText === currentTriggerWord) shouldCaption = true;
-                }
-
-                if (shouldCaption) {
-                    try {
-                        const file = item.file;
-                        const caption = await generateCaption(file);
-
-                        if (caption) {
-                            let finalText = "";
-                            if (mode === 'overwrite') {
-                                finalText = caption;
-                            } else {
-                                finalText = currentText ? currentText + " " + caption : caption;
-                            }
-                            
-                            if (currentTriggerWord && !finalText.startsWith(currentTriggerWord)) {
-                                finalText = currentTriggerWord + ", " + finalText;
-                            }
-
-                            dataset[i].tags = finalText;
-                            dataset[i].type = 'caption';
-                            
-                            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
-                            if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, i);
-                        }
-                    } catch (e) {
-                        console.error(`Error captioning image ${i}`, e);
-                    }
-                }
-
-                processed++;
-                updateProgress(processed, total, captionProgressBar, captionProgressText);
-            }
-
-            renderTagViewer();
-            isBatchProcessing = false;
-            closeCaptionSettings();
-            showNotification(processed === total ? "Captioning Complete!" : "Captioning Stopped.");
-        }
-
-        function updateProgress(current, total, barElement, textElement) {
-            const percent = Math.round((current / total) * 100);
-            barElement.style.width = `${percent}%`;
-            textElement.textContent = `${current} / ${total}`;
-        }
-
-        function handleTriggerWordChange(e) {
-            const newTrigger = e.target.value.trim();
-            dataset.forEach((item, index) => {
-                let currentText = item.tags.trim();
-                
-                if (currentTriggerWord && currentText.startsWith(currentTriggerWord)) {
-                    currentText = currentText.substring(currentTriggerWord.length).trim();
-                    if (currentText.startsWith(',')) currentText = currentText.substring(1).trim();
-                }
-                
-                if (newTrigger) {
-                    if (currentText) {
-                        currentText = newTrigger + ", " + currentText;
-                    } else {
-                        currentText = newTrigger;
-                    }
-                }
-                
-                item.tags = currentText;
+        async function fileToBase64(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
             });
-            currentTriggerWord = newTrigger;
-            renderTagUpdates();
         }
 
-        function renderTagUpdates() {
-            dataset.forEach((item, index) => {
-                const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-                if (tagAreaWrapper) {
-                    renderTagsInCard(tagAreaWrapper, index);
+        async function generateCaption(imageFile) {
+            const model = getModel();
+            const base64 = await fileToBase64(imageFile);
+
+            if (model === 'deepdanbooru') {
+                const threshold = localStorage.getItem('ddThreshold') || '0.5';
+                const resp = await fetch(`https://deepdanbooru.donmai.us/?url=${encodeURIComponent(base64)}&min_score=${threshold}`);
+                const text = await resp.text();
+                const tags = text.split('\n').map(line => line.match(/^(.*?) \(/)?.[1].trim()).filter(Boolean);
+                return tags.join(', ');
+            }
+
+            if (model === 'wd14') {
+                const apiKey = getWDKey();
+                if (!apiKey) throw new Error('Replicate API key required for WD1.4');
+                const general = parseFloat(localStorage.getItem('wdGeneralThresh') || '0.35');
+                const char = parseFloat(localStorage.getItem('wdCharThresh') || '0.85');
+
+                const create = await fetch('https://api.replicate.com/v1/predictions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({
+                        version: "2c081a1ded296dda31ce8f85c50588a4a44e9dc8ad55a350bae6e5596e2d5b63",
+                        input: { image: base64, general_thresh: general, character_thresh: char }
+                    })
+                });
+                const data = await create.json();
+                let result = data;
+                while (result.status !== 'succeeded' && result.status !== 'failed') {
+                    await new Promise(r => setTimeout(r, 1000));
+                    const poll = await fetch(result.urls.get, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+                    result = await poll.json();
                 }
-            });
-            renderTagViewer();
+                if (result.status === 'failed') throw new Error('WD1.4 tagging failed');
+                const tags = result.output.map(t => t.tag).filter(Boolean).join(', ');
+                return tags;
+            }
+
+            const apiKey = getApiKey();
+            if (!apiKey) throw new Error('API key missing');
+
+            let responseText = '';
+            if (model === 'gemini') {
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [
+                            { text: "Provide detailed comma-separated tags for LoRA training." },
+                            { inline_data: { mime_type: imageFile.type, data: base64.split(',')[1] } }
+                        ] }]
+                    })
+                });
+                const data = await resp.json();
+                responseText = data.candidates[0].content.parts[0].text;
+            } else {
+                const isGrok = model === 'grok';
+                const endpoint = isGrok ? 'https://api.x.ai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+                const modelName = isGrok ? 'grok-vision-latest' : 'gpt-4o';
+                const resp = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({
+                        model: modelName,
+                        messages: [{ role: 'user', content: [
+                            { type: 'text', text: 'Provide detailed comma-separated tags for LoRA training.' },
+                            { type: 'image_url', image_url: { url: base64 } }
+                        ] }],
+                        max_tokens: 300
+                    })
+                });
+                const data = await resp.json();
+                responseText = data.choices[0].message.content;
+            }
+            return responseText.trim();
+        }
+
+        function showNotification(text, duration = 3000) {
+            notificationText.textContent = text;
+            notification.classList.remove('hidden', 'translate-x-full');
+            notification.classList.add('translate-x-0');
+            setTimeout(() => notification.classList.add('translate-x-full'), duration);
+        }
+
+        function showLoader(text) {
+            loaderText.textContent = text || 'Processing...';
+            loader.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            loader.style.display = 'none';
+        }
+
+        async function calculateFileHash(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         async function handleImageUpload(event) {
@@ -807,7 +660,7 @@ Expected outcome is a human-readable continuous text consisting of several sente
 
             } catch (error) {
                 console.error("Error processing ZIP file:", error);
-                showNotification("Error processing ZIP. See console for details.", 5000, true);
+                showNotification("Error processing ZIP. See console for details.");
             } finally {
                 hideLoader();
             }
@@ -824,254 +677,280 @@ Expected outcome is a human-readable continuous text consisting of several sente
         }
 
         function handleClearTags() {
-            if (!confirm("Are you sure you want to clear tags/captions from all images? Images will remain loaded.")) return;
-            
+            if (!confirm("Clear all tags/captions?")) return;
             dataset.forEach(item => {
-                item.tags = currentTriggerWord ? currentTriggerWord : "";
+                item.tags = currentTriggerWord || "";
                 item.type = 'tags';
             });
-            
             renderTagUpdates();
-            showNotification("All tags cleared.");
+            showNotification("Cleared all tags.");
         }
 
-        function removeImage(indexToRemove) {
-            dataset.splice(indexToRemove, 1);
-            render();
-        }
+        async function handleExport() {
+            if (dataset.length === 0) return showNotification("No images to export");
 
-        function updateTags(index, tagsArray, shouldRenderSummary = true) {
-            if (dataset[index]) {
-                dataset[index].tags = tagsArray.join(', ');
-            }
-            if (shouldRenderSummary) renderTagViewer();
-        }
-
-        function deleteTagGlobally(tagToDelete) {
-            if (!confirm(`Are you sure you want to delete the tag "${tagToDelete}" from all images?`)) return;
-
-            dataset.forEach((item, index) => {
-                if (item.type === 'caption') return;
-                let tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
-                if (tags.includes(tagToDelete)) {
-                    tags = tags.filter(t => t !== tagToDelete);
-                    item.tags = tags.join(', ');
-                }
+            const zip = new JSZip();
+            dataset.forEach(item => {
+                zip.file(item.file.name, item.file);
+                const txtName = item.file.name.replace(/\.[^/.]+$/, ".txt");
+                zip.file(txtName, item.tags);
             });
-            renderTagUpdates(); 
-            showNotification(`Deleted tag "${tagToDelete}" from dataset.`);
+            const blob = await zip.generateAsync({type:"blob"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (datasetNameInput.value.trim() || 'dataset') + '.zip';
+            a.click();
+            showNotification("Exported ZIP");
         }
 
-        function toggleCardType(index) {
-            const item = dataset[index];
-            item.type = item.type === 'caption' ? 'tags' : 'caption';
-            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-            if (tagAreaWrapper) renderTagsInCard(tagAreaWrapper, index);
+        function handleTriggerWordChange(e) {
+            const newTrigger = e.target.value.trim();
+            dataset.forEach(item => {
+                let text = item.tags.trim();
+                if (currentTriggerWord && text.startsWith(currentTriggerWord)) {
+                    text = text.substring(currentTriggerWord.length).trim();
+                    if (text.startsWith(',')) text = text.substring(1).trim();
+                }
+                if (newTrigger) {
+                    text = newTrigger + (text ? ", " + text : "");
+                }
+                item.tags = text;
+            });
+            currentTriggerWord = newTrigger;
+            renderTagUpdates();
+        }
+
+        function renderTagUpdates() {
+            dataset.forEach((_, i) => {
+                const wrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
+                if (wrapper) renderTagsInCard(wrapper, i);
+            });
+            renderTagViewer();
+        }
+
+        function openTagSettings() {
+            if (dataset.length === 0) return showNotification("No images");
+            tagSettingsConfig.classList.remove('hidden');
+            tagSettingsProgress.classList.add('hidden');
+            tagSettingsModal.style.display = 'flex';
+        }
+
+        function closeTagSettings() {
+            tagSettingsModal.style.display = 'none';
+        }
+
+        function openCaptionSettings() {
+            if (dataset.length === 0) return showNotification("No images");
+            captionSettingsConfig.classList.remove('hidden');
+            captionSettingsProgress.classList.add('hidden');
+            captionSettingsModal.style.display = 'flex';
+        }
+
+        function closeCaptionSettings() {
+            captionSettingsModal.style.display = 'none';
+        }
+
+        function stopBatchProcessing() {
+            isBatchProcessing = false;
+        }
+
+        async function startBatchTagging() {
+            const maxTags = parseInt(settingMaxTags.value) || 30;
+            const mode = document.querySelector('input[name="tag-mode"]:checked').value;
+
+            tagSettingsConfig.classList.add('hidden');
+            tagSettingsProgress.classList.remove('hidden');
+            isBatchProcessing = true;
+
+            let processed = 0;
+            const total = dataset.length;
+            tagProgressText.textContent = `0 / ${total}`;
+            tagProgressBar.style.width = '0%';
+
+            for (let i = 0; i < total && isBatchProcessing; i++) {
+                const item = dataset[i];
+                let shouldTag = mode === 'overwrite' || mode === 'append' || (mode === 'ignore' && (!item.tags || item.tags === currentTriggerWord));
+
+                if (shouldTag) {
+                    try {
+                        const newTags = await generateCaption(item.file);
+                        let tags = newTags.split(',').map(t => t.trim()).filter(Boolean);
+                        if (mode === 'append') {
+                            tags = [...new Set(item.tags.split(',').map(t => t.trim()).filter(Boolean).concat(tags))];
+                        }
+                        if (currentTriggerWord) {
+                            tags = tags.filter(t => t !== currentTriggerWord);
+                            tags.unshift(currentTriggerWord);
+                        }
+                        if (tags.length > maxTags) tags = tags.slice(0, maxTags);
+                        item.tags = tags.join(', ');
+                        item.type = 'tags';
+                        const wrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
+                        if (wrapper) renderTagsInCard(wrapper, i);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+                processed++;
+                tagProgressBar.style.width = `${(processed / total) * 100}%`;
+                tagProgressText.textContent = `${processed} / ${total}`;
+            }
+
+            renderTagViewer();
+            isBatchProcessing = false;
+            closeTagSettings();
+            showNotification("Tagging complete");
+        }
+
+        async function startBatchCaptioning() {
+            const mode = document.querySelector('input[name="caption-mode"]:checked').value;
+
+            captionSettingsConfig.classList.add('hidden');
+            captionSettingsProgress.classList.remove('hidden');
+            isBatchProcessing = true;
+
+            let processed = 0;
+            const total = dataset.length;
+            captionProgressText.textContent = `0 / ${total}`;
+            captionProgressBar.style.width = '0%';
+
+            for (let i = 0; i < total && isBatchProcessing; i++) {
+                const item = dataset[i];
+                let shouldCaption = mode === 'overwrite' || mode === 'append' || (mode === 'ignore' && (!item.tags || item.tags === currentTriggerWord));
+
+                if (shouldCaption) {
+                    try {
+                        const caption = await generateCaption(item.file);
+                        let final = mode === 'overwrite' ? caption : (item.tags ? item.tags + " " + caption : caption);
+                        if (currentTriggerWord && !final.startsWith(currentTriggerWord)) final = currentTriggerWord + ", " + final;
+                        item.tags = final;
+                        item.type = 'caption';
+                        const wrapper = document.querySelector(`.tag-area-wrapper[data-index='${i}']`);
+                        if (wrapper) renderTagsInCard(wrapper, i);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+                processed++;
+                captionProgressBar.style.width = `${(processed / total) * 100}%`;
+                captionProgressText.textContent = `${processed} / ${total}`;
+            }
+
+            renderTagViewer();
+            isBatchProcessing = false;
+            closeCaptionSettings();
+            showNotification("Captioning complete");
         }
 
         function render() {
             imageGrid.innerHTML = '';
 
-            if (dataset.length > 0) {
-                taggerSection.classList.remove('hidden');
-                tagViewerSection.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                imageGrid.classList.remove('hidden');
-
-                dataset.forEach((item, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-gray-800 rounded-lg shadow-md overflow-hidden flex h-72 items-center';
-                    card.id = `card-${index}`;
-
-                    const imageUrl = URL.createObjectURL(item.file);
-
-                    card.innerHTML = `
-                        <div class="p-4 h-full flex items-center justify-center">
-                            <span class="text-2xl font-bold text-gray-500">${index + 1}</span>
-                        </div>
-                        <div class="w-2/5 flex-shrink-0 cursor-pointer thumbnail-container h-full">
-                            <img src="${imageUrl}" alt="${item.file.name}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="p-4 flex flex-col flex-grow min-w-0 h-full">
-                            <div class="flex justify-between items-center mb-2">
-                                <p class="text-xs text-gray-400" id="resolution-${index}">...</p>
-                                <button class="text-xs text-gray-500 hover:text-white" title="Toggle View Mode (Tags/Text)" onclick="toggleCardType(${index})">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="flex flex-grow gap-3 min-h-0">
-                                <div class="tag-area-wrapper w-full flex-grow bg-gray-700 border border-gray-600 rounded-md p-2 flex flex-wrap items-start content-start gap-2 overflow-y-auto" data-index="${index}">
-                                </div>
-                                <div class="flex flex-col gap-2 flex-shrink-0">
-                                    <button class="crop-btn w-full flex items-center justify-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-                                        </svg>
-                                        <span>Crop</span>
-                                    </button>
-                                    <button class="autotag-single-button w-full flex items-center justify-center gap-2 text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                        </svg>
-                                        <span>Tag</span>
-                                    </button>
-                                    <button class="caption-single-button w-full flex items-center justify-center gap-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                        </svg>
-                                        <span>Caption</span>
-                                    </button>
-                                    <button class="remove-btn w-full flex items-center justify-center gap-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-md transition-colors" data-index="${index}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        <span>Remove</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    imageGrid.appendChild(card);
-
-                    const img = card.querySelector('img');
-                    img.onload = () => {
-                        document.getElementById(`resolution-${index}`).textContent = `${img.naturalWidth} x ${img.naturalHeight}`;
-                    };
-
-                    renderTagsInCard(card.querySelector('.tag-area-wrapper'), index);
-
-                    card.querySelector('.thumbnail-container').addEventListener('click', () => showPreview(imageUrl));
-                    card.querySelector('.crop-btn').addEventListener('click', () => openCrop(index));
-                    card.querySelector('.autotag-single-button').addEventListener('click', () => autotagSingle(index));
-                    card.querySelector('.caption-single-button').addEventListener('click', () => captionSingle(index));
-                    card.querySelector('.remove-btn').addEventListener('click', () => removeImage(index));
-                });
-                renderTagViewer();
-            } else {
+            if (dataset.length === 0) {
                 taggerSection.classList.add('hidden');
                 tagViewerSection.classList.add('hidden');
                 placeholder.classList.remove('hidden');
-                imageGrid.classList.add('hidden');
-            }
-        }
-
-        async function handleExport() {
-            if (dataset.length === 0) {
-                showNotification("No images to export.");
                 return;
             }
 
-            const jszip = new JSZip();
-            dataset.forEach((item) => {
-                jszip.file(item.file.name, item.file);
-                jszip.file(item.file.name.replace(/\.(jpg|png|webp)$/, '.txt'), item.tags);
+            taggerSection.classList.remove('hidden');
+            tagViewerSection.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+
+            dataset.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800 rounded-lg shadow-md overflow-hidden flex h-72 items-center';
+                const imageUrl = URL.createObjectURL(item.file);
+
+                card.innerHTML = `
+                    <div class="p-4 h-full flex items-center justify-center">
+                        <span class="text-2xl font-bold text-gray-500">${index + 1}</span>
+                    </div>
+                    <div class="w-2/5 flex-shrink-0 cursor-pointer thumbnail-container h-full" onclick="showPreview('${imageUrl}')">
+                        <img src="${imageUrl}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow min-w-0 h-full">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-xs text-gray-400" id="resolution-${index}">loading...</p>
+                            <button onclick="toggleCardType(${index})" title="Toggle Tags/Caption">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            </button>
+                        </div>
+                        <div class="flex flex-grow gap-3 min-h-0">
+                            <div class="tag-area-wrapper w-full flex-grow bg-gray-700 border border-gray-600 rounded-md p-2 flex flex-wrap items-start content-start gap-2 overflow-y-auto" data-index="${index}"></div>
+                            <div class="flex flex-col gap-2">
+                                <button class="crop-btn bg-blue-600 hover:bg-blue-700 py-2 px-3 rounded text-sm" data-index="${index}">Crop</button>
+                                <button class="autotag-single-button bg-teal-600 hover:bg-teal-700 py-2 px-3 rounded text-sm" data-index="${index}">Tag</button>
+                                <button class="caption-single-button bg-purple-600 hover:bg-purple-700 py-2 px-3 rounded text-sm" data-index="${index}">Caption</button>
+                                <button class="remove-btn bg-red-600 hover:bg-red-700 py-2 px-3 rounded text-sm" data-index="${index}">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                imageGrid.appendChild(card);
+
+                const img = card.querySelector('img');
+                img.onload = () => document.getElementById(`resolution-${index}`).textContent = `${img.naturalWidth}x${img.naturalHeight}`;
+
+                renderTagsInCard(card.querySelector('.tag-area-wrapper'), index);
+
+                card.querySelector('.crop-btn').addEventListener('click', () => openCrop(index));
+                card.querySelector('.autotag-single-button').addEventListener('click', () => autotagSingle(index));
+                card.querySelector('.caption-single-button').addEventListener('click', () => captionSingle(index));
+                card.querySelector('.remove-btn').addEventListener('click', () => removeImage(index));
             });
 
-            const zipBlob = await jszip.generateAsync({ type: 'blob' });
-            const datasetName = datasetNameInput.value.trim() || 'dataset';
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
-            link.download = `${datasetName}.zip`;
-            link.click();
-
-            showNotification("Dataset exported as ZIP.");
-        }
-
-        function showLoader(text) {
-            loaderText.textContent = text || 'Processing...';
-            loader.style.display = 'flex';
-        }
-
-        function hideLoader() {
-            loader.style.display = 'none';
-        }
-
-        function showNotification(text, duration = 3000) {
-            notificationText.textContent = text;
-            notification.classList.remove('hidden', 'translate-x-full');
-            notification.classList.add('translate-x-0');
-            setTimeout(() => {
-                notification.classList.add('translate-x-full');
-            }, duration);
-        }
-
-        async function calculateFileHash(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            renderTagViewer();
         }
 
         function renderTagViewer() {
             tagViewerList.innerHTML = '';
-            const tagMap = new Map();
+            const map = new Map();
             dataset.forEach(item => {
                 if (item.type === 'caption') return;
-                item.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(tag => {
-                    tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
-                });
+                item.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => map.set(t, (map.get(t) || 0) + 1));
             });
-
-            const sortedTags = [...tagMap.entries()].sort((a, b) => b[1] - a[1]);
-
-            sortedTags.forEach(([tag, count]) => {
+            const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+            sorted.forEach(([tag, count]) => {
                 const pill = document.createElement('span');
-                pill.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300 cursor-pointer hover:bg-gray-600';
-                pill.innerHTML = `
-                    ${tag}
-                    <span class="ml-1 text-gray-500">(${count})</span>
-                    <button class="ml-2 text-gray-500 hover:text-red-500" onclick="deleteTagGlobally('${tag.replace(/'/g, "\\'")}')">
-                        ×
-                    </button>
-                `;
+                pill.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-700 text-gray-300 hover:bg-gray-600';
+                pill.innerHTML = `${tag} <span class="ml-1 text-gray-500">(${count})</span> <button class="ml-2 hover:text-red-500" onclick="deleteTagGlobally('${tag}')">×</button>`;
                 tagViewerList.appendChild(pill);
             });
-
-            totalTagsBadge.textContent = `${sortedTags.length} tags`;
+            totalTagsBadge.textContent = `${sorted.length} tags`;
         }
 
         function renderTagsInCard(wrapper, index) {
             wrapper.innerHTML = '';
             const item = dataset[index];
-
             if (item.type === 'caption') {
-                const textarea = document.createElement('textarea');
-                textarea.value = item.tags;
-                textarea.className = 'w-full h-full bg-transparent text-gray-300 text-sm outline-none resize-none';
-                textarea.oninput = (e) => {
+                const ta = document.createElement('textarea');
+                ta.value = item.tags;
+                ta.className = 'w-full h-full bg-transparent text-gray-300 text-sm resize-none outline-none';
+                ta.oninput = e => {
                     item.tags = e.target.value;
                     renderTagViewer();
                 };
-                wrapper.appendChild(textarea);
+                wrapper.appendChild(ta);
             } else {
                 const tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
-                tags.forEach((tag, tagIndex) => {
-                    const tagPill = document.createElement('span');
-                    tagPill.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-600 text-gray-300 cursor-move';
-                    tagPill.draggable = true;
-                    tagPill.innerHTML = `
-                        ${tag}
-                        <button class="ml-1 text-gray-500 hover:text-red-500" onclick="removeTagFromImage(${index}, ${tagIndex})">
-                            ×
-                        </button>
-                    `;
-                    wrapper.appendChild(tagPill);
+                tags.forEach((tag, ti) => {
+                    const pill = document.createElement('span');
+                    pill.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-600 text-gray-300';
+                    pill.innerHTML = `${tag} <button class="ml-1 hover:text-red-500" onclick="removeTagFromImage(${index}, ${ti})">×</button>`;
+                    wrapper.appendChild(pill);
                 });
-
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.placeholder = 'Add tag...';
-                input.className = 'bg-transparent text-gray-300 text-sm outline-none flex-grow min-w-[100px]';
-                input.onkeydown = (e) => {
+                input.className = 'bg-transparent text-gray-300 text-sm outline-none';
+                input.onkeydown = e => {
                     if (e.key === 'Enter' || e.key === ',') {
                         e.preventDefault();
-                        const newTag = e.target.value.trim();
-                        if (newTag) {
-                            tags.push(newTag);
+                        const v = e.target.value.trim();
+                        if (v) {
+                            tags.push(v);
                             item.tags = tags.join(', ');
                             renderTagsInCard(wrapper, index);
                             input.value = '';
@@ -1088,72 +967,73 @@ Expected outcome is a human-readable continuous text consisting of several sente
             const tags = item.tags.split(',').map(t => t.trim()).filter(Boolean);
             tags.splice(tagIndex, 1);
             item.tags = tags.join(', ');
-            const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-            renderTagsInCard(tagAreaWrapper, index);
+            renderTagsInCard(document.querySelector(`.tag-area-wrapper[data-index='${index}']`), index);
             renderTagViewer();
         }
 
-        async function autotagSingle(index) {
+        function deleteTagGlobally(tag) {
+            if (!confirm(`Delete "${tag}" from all images?`)) return;
+            dataset.forEach(item => {
+                if (item.type === 'caption') return;
+                item.tags = item.tags.split(',').map(t => t.trim()).filter(t => t !== tag).join(', ');
+            });
+            renderTagUpdates();
+        }
+
+        function toggleCardType(index) {
             const item = dataset[index];
-            const currentTags = item.tags.trim();
-            const newTagsString = await generateCaption(item.file);
-            if (newTagsString) {
-                let newTags = newTagsString.split(',').map(t => t.trim()).filter(Boolean);
-                let finalTags = [...new Set([...currentTags.split(',').map(t => t.trim()).filter(Boolean), ...newTags])];
-                if (currentTriggerWord) {
-                    finalTags = finalTags.filter(t => t !== currentTriggerWord);
-                    finalTags.unshift(currentTriggerWord);
-                }
-                item.tags = finalTags.join(', ');
-                item.type = 'tags';
-                const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-                renderTagsInCard(tagAreaWrapper, index);
+            item.type = item.type === 'caption' ? 'tags' : 'caption';
+            renderTagsInCard(document.querySelector(`.tag-area-wrapper[data-index='${index}']`), index);
+        }
+
+        async function autotagSingle(index) {
+            try {
+                const tags = await generateCaption(dataset[index].file);
+                dataset[index].tags = currentTriggerWord ? currentTriggerWord + ', ' + tags : tags;
+                dataset[index].type = 'tags';
+                renderTagsInCard(document.querySelector(`.tag-area-wrapper[data-index='${index}']`), index);
                 renderTagViewer();
-                showNotification("Image tagged.");
+                showNotification("Tagged");
+            } catch (e) {
+                showNotification("Error: " + e.message);
             }
         }
 
         async function captionSingle(index) {
-            const item = dataset[index];
-            const currentText = item.tags.trim();
-            const caption = await generateCaption(item.file);
-            if (caption) {
-                let finalText = currentText ? currentText + " " + caption : caption;
-                if (currentTriggerWord && !finalText.startsWith(currentTriggerWord)) {
-                    finalText = currentTriggerWord + ", " + finalText;
-                }
-                item.tags = finalText;
-                item.type = 'caption';
-                const tagAreaWrapper = document.querySelector(`.tag-area-wrapper[data-index='${index}']`);
-                renderTagsInCard(tagAreaWrapper, index);
+            try {
+                const caption = await generateCaption(dataset[index].file);
+                dataset[index].tags = caption;
+                dataset[index].type = 'caption';
+                renderTagsInCard(document.querySelector(`.tag-area-wrapper[data-index='${index}']`), index);
                 renderTagViewer();
-                showNotification("Image captioned.");
+                showNotification("Captioned");
+            } catch (e) {
+                showNotification("Error: " + e.message);
             }
+        }
+
+        function removeImage(index) {
+            dataset.splice(index, 1);
+            render();
         }
 
         function openCrop(index) {
             currentCropIndex = index;
-            const imageUrl = URL.createObjectURL(dataset[index].file);
-            cropImage.src = imageUrl;
+            cropImage.src = URL.createObjectURL(dataset[index].file);
             cropModal.style.display = 'flex';
-            cropper = new Cropper(cropImage, {
-                aspectRatio: NaN,
-                viewMode: 1,
-            });
+            cropper = new Cropper(cropImage, { aspectRatio: NaN, viewMode: 1 });
         }
 
         async function saveCrop() {
-            if (cropper) {
-                const croppedCanvas = cropper.getCroppedCanvas();
-                const blob = await new Promise(resolve => croppedCanvas.toBlob(resolve));
-                const item = dataset[currentCropIndex];
-                item.file = new File([blob], item.file.name, { type: item.file.type });
-                cropper.destroy();
-                cropper = null;
-                cropModal.style.display = 'none';
-                render();
-                showNotification("Image cropped.");
-            }
+            if (!cropper) return;
+            const canvas = cropper.getCroppedCanvas();
+            const blob = await new Promise(r => canvas.toBlob(r));
+            dataset[currentCropIndex].file = new File([blob], dataset[currentCropIndex].file.name, { type: dataset[currentCropIndex].file.type });
+            cropper.destroy();
+            cropper = null;
+            cropModal.style.display = 'none';
+            render();
+            showNotification("Cropped");
         }
 
         function cancelCrop() {
