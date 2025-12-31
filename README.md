@@ -1,77 +1,51 @@
-# **TagPilot ✈️**
+# **TagPilot v1.5 ✈️ (Your Co-Pilot for LoRA Dataset Domination)**
 
-**A powerful, browser-based tool for creating and managing training datasets for AI image generation, specifically for technologies like LoRA.**  
-TagPilot streamlines the tedious process of preparing images for training by providing a suite of powerful, client-side tools, including AI-powered auto-tagging, auto-captioning, duplicate detection, and a robust image editor. It runs entirely in your browser, keeping your data private and secure.
+**The browser-based beast that turns chaotic image piles into perfectly tagged, ready-to-train datasets – faster than you can say "trigger word activated!"**
 
 ![TagPilot UI](https://i.ibb.co/whbs8by3/tagpilot-gui.png)
 
-## **Key Features**
+Tired of wrestling with folders full of untagged images like a digital archaeologist? TagPilot swoops in like a supersonic jet, handling everything client-side so your precious data never leaves your machine (except when you politely ask Gemini to peek for tagging magic). Private, secure, and zero server drama.
 
-* **Flexible Uploads**: Load individual images or upload a complete dataset (images \+ existing .txt tags) in a .zip file. You can add more files incrementally at any time.  
-* **Global Trigger Word**: Easily set a trigger word that is automatically applied as the first tag to every image in your dataset.  
-* **Smart AI Auto-Tagging**: Uses the **Google Gemini API** (specifically the latest 2.5 Flash model) to generate high-quality tags.  (Easy to change the API endpoint to work with any other LLM model like Grok or DeepSeek (for NSFW support)
-  * **Batch Control**: Choose to **Ignore**, **Append to**, or **Overwrite** existing tags.  
-  * **Progress Tracking**: Includes a progress bar and a "Stop" button to cancel the process if needed.  
-* **Advanced Tag Viewer**: A collapsible panel that shows every tag used in your dataset along with its frequency.  
-  * **Global Delete**: Click the x on any tag in the viewer to instantly remove it from **every image** in the dataset.  
-* **Interactive Tag Editor**: Manage tags on individual images using a clean, interactive interface.
-* **AI Auto-Captioning**: Added support for captions with an option to edit or fully replace the system prompt.
-* **Free-Form Cropping**: Built-in cropper allows you to adjust the composition of your images with any aspect ratio (not locked to square).  
-* **Secure Duplicate Detection**: Identifies and skips duplicate images based on their content (hash), not their filename. This process is done **100% locally**.  
-* **Structured Export**: Downloads your completed dataset as a .zip file, perfectly structured for training tools like Kohya\_ss (1\_datasetname/datasetname001.jpg, datasetname001.txt, etc.).  
-* **Secure & Private**: Runs entirely in your browser. Images are only sent to the external API when you explicitly use the auto-tagging feature. Your API key is stored locally and never committed to the repository.
+### **Why TagPilot Will Make You Smile (and Your LoRAs Shine)**
 
-## **Setup & Installation**
+- **Upload Shenanigans**: Drag in single pics, or drop a whole ZIP bomb – it even pairs existing .txt tags like a pro matchmaker. Add more anytime; no commitment issues here.
+- **Trigger Word Superpower**: Type your magic word once (e.g., "ohwx woman") and watch it glue itself as the VIP first tag on *every* image. Boom – consistent activation guaranteed.
+- **AI Tagging Turbo**: Powered by Gemini 1.5 Flash (free tier friendly!), Grok, OpenAI, DeepDanbooru, or WD1.4 – because why settle for one engine when you can have a fleet?
+  - Batch modes: **Ignore** (I'm good, thanks), **Append** (more tags pls), or **Overwrite** (out with the old!).
+  - Progress bar + emergency "Stop" button for when the API gets stage fright.
+- **Tag Viewer Cockpit**: Collapsible dashboard showing every tag's popularity. Click the little × to yeet a bad tag from the *entire* dataset. Global cleanup has never felt so satisfying.
+- **Per-Image Playground**: Clickable pills for tags, free-text captions, add/remove on the fly. Toggle between tag-mode and caption-mode like switching altitudes.
+- **Crop & Conquer**: Free-form cropper (any aspect ratio) to frame your subjects perfectly. No more awkward compositions ruining your training.
+- **Duplicate Radar**: 100% local hash detection – skips clones quietly, no false alarms from sneaky filename changes.
+- **Export Glory**: One click → pristine ZIP with images + .txt files, ready for kohya_ss or your trainer of choice.
+- **Privacy First**: Everything runs in your browser. API key stays local. No cloudy business.
 
-Getting TagPilot running is simple. Since it's a client-side application, there is no complex backend server to set up.
+### **Getting Airborne (Setup in 30 Seconds)**
 
-1. **Clone the Repository**  
-   git clone \[https://github.com/vavo/TagPilot.git\](https://github.com/vavo/TagPilot.git)  
-   cd TagPilot
+No servers, no npm drama – just pure single-file HTML bliss.
 
-2. Create Your Configuration File  
-   This project uses a local, untracked config.js file to keep your API key secure.  
-   Copy the example file:  
-   cp config.example.js config.js
+1. Clone or download: `git clone https://github.com/vavo/TagPilot.git`
+2. Open `tagpilot.html` in your browser. Done! 🚀
 
-3. **Add Your API Key**  
-   * Get a free Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).  
-   * Open the config.js file you just created and paste your API key into the userApiKey constant.  
-     // config.js  
-     const userApiKey \= "YOUR\_GEMINI\_API\_KEY\_GOES\_HERE";
+(Pro tip: For a fancy local server, run `python -m http.server 8000` and hit localhost:8000.)
 
-4. **Run the Application**  
-   * Simply open the tagpilot.html file in your web browser. That's it\!  
-   * Alternatively, you can use Python to create a simple local webserver:  
-     python \-m http.server 3333
+### **Flight Plan (How to Crush It)**
 
-     Then access TagPilot at http://localhost:3333/tagpilot.html
+1. **Load Cargo**: Upload images or ZIP – duplicates auto-skipped.
+2. **Set Trigger**: Your secret activation phrase goes here.
+3. **Name Your Mission**: Dataset prefix for clean exports.
+4. **Tag/Caption All**: Pick model in Settings ⚙️, hit the button, tweak limits/mode/prompt.
+5. **Fine-Tune**: Crop, manual edit, nuke bad tags globally.
+6. **Deploy**: Export ZIP and watch your LoRA soar.
 
-## **Usage Workflow**
+### **Under the Hood (Cool Tech Stuff)**
 
-1. **Load Images**: Upload photos or a pre-tagged .zip dataset. The tool checks for duplicates automatically.  
-2. **Set Trigger Word**: Enter your desired trigger word (e.g., ohwx man) in the input box. This ensures it is always the first tag for every image.  
-3. **Set Dataset Name**: Enter the filename prefix for your export (e.g., my-lora-v1).  
-4. **Auto-Tag**: Click **"Tag All"** to open the batch settings:  
-   * Set the maximum number of tags per image.  
-   * Choose how to handle existing tags: **Ignore** (skip tagged), **Append** (add new tags), or **Overwrite** (replace all tags).
-5. **Auto-Caption**: Click **"Caption All"** to open the batch settings:  
-   * Set the maximum number of words per image.  
-   * Choose how to handle existing captions: **Ignore** (skip existing captions), **Append** (add new caption - avoiding duplicity), or **Overwrite** (replace all captions).
-   * You can also edit or fully replace the system prompt.  
-6. **Review & Refine**:  
-   * Use the **Tag Viewer** at the bottom to see tag distribution. Remove unwanted tags globally by clicking them.  
-   * Manually edit tags on specific cards if needed.  
-   * Use the **Crop** button to adjust image framing.  
-7. **Export**: Click **"Export as ZIP"** to download your production-ready dataset.
+- Vanilla JS + Tailwind (fast & beautiful)
+- JSZip for ZIP wizardry
+- Cropper.js for precision framing
+- Web Crypto for local duplicate detection
+- Multiple AI backends (Gemini default, others one click away)
 
-## **Technology Stack**
+Got ideas, bugs, or want to contribute? Open an issue or PR – let's make dataset prep ridiculously awesome together!
 
-* **HTML, CSS, JavaScript**: The core "vanilla" stack. No complex frameworks.  
-* **Tailwind CSS**: For all styling and layout.  
-* **JSZip**: For client-side .zip file processing.  
-* **Cropper.js**: For the image cropping functionality.  
-* **Google Gemini API**: Powers the AI auto-tagging feature (Default: Gemini 2.5 Flash Preview).  
-* **Web Crypto API**: Used for secure, local duplicate image detection.
-
-Feel free to contribute or open issues if you find bugs or have ideas for new features\!
+**Happy training, pilots! ✈️**
