@@ -1139,6 +1139,30 @@ Limit the caption to ${maxWords} words or fewer.`;
             return ensureDatasetItemId({ file, tags, type });
         }
 
+        function isSafeDatasetFileName(filename) {
+            const name = String(filename || '');
+            return Boolean(name)
+                && name === name.split(/[\\/]/).pop()
+                && !name.includes('..')
+                && !/^[a-zA-Z]:/.test(name)
+                && !name.startsWith('/')
+                && !name.startsWith('\\');
+        }
+
+        function normalizeDatasetImageName(filename) {
+            if (!isSafeDatasetFileName(filename)) return null;
+            if (filename.toLowerCase().endsWith('.jpeg')) {
+                return filename.slice(0, -5) + '.jpg';
+            }
+            return filename;
+        }
+
+        function getDatasetTextFileName(imageName) {
+            const safeImageName = normalizeDatasetImageName(imageName);
+            if (!safeImageName) return null;
+            return safeImageName.replace(/\.[^/.]+$/, '.txt');
+        }
+
         function findDatasetItemIndexById(itemId) {
             return dataset.findIndex(item => item.id === itemId);
         }
@@ -1277,13 +1301,12 @@ Limit the caption to ${maxWords} words or fewer.`;
                 const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
 
                 for (const filename in zip.files) {
-                    if (zip.files[filename].dir) continue;
+                    if (zip.files[filename].dir || !isSafeDatasetFileName(filename)) continue;
                     const lowerFilename = filename.toLowerCase();
+                    const baseName = filename.substring(0, filename.lastIndexOf('.'));
                     if (imageExtensions.some(ext => lowerFilename.endsWith(ext))) {
-                        const baseName = filename.substring(0, filename.lastIndexOf('.'));
                         imageFiles[baseName] = { file: zip.files[filename], originalName: filename };
                     } else if (lowerFilename.endsWith('.txt')) {
-                        const baseName = filename.substring(0, filename.lastIndexOf('.'));
                         textFiles[baseName] = zip.files[filename];
                     }
                 }
@@ -1296,10 +1319,8 @@ Limit the caption to ${maxWords} words or fewer.`;
                     const { file: imageZipObject, originalName } = imageFiles[baseName];
                     const imageBlob = await imageZipObject.async('blob');
                     
-                    let finalName = originalName;
-                    if (originalName.toLowerCase().endsWith('.jpeg')) {
-                        finalName = originalName.slice(0, -5) + '.jpg';
-                    }
+                    const finalName = normalizeDatasetImageName(originalName);
+                    if (!finalName) continue;
                     const imageFile = new File([imageBlob], finalName, { type: imageBlob.type });
 
                     const hash = await calculateFileHash(imageFile);
@@ -1363,8 +1384,10 @@ Limit the caption to ${maxWords} words or fewer.`;
 
             const zip = new JSZip();
             dataset.forEach(item => {
-                zip.file(item.file.name, item.file);
-                const txtName = item.file.name.replace(/\.[^/.]+$/, ".txt");
+                const imageName = normalizeDatasetImageName(item.file.name);
+                const txtName = getDatasetTextFileName(imageName);
+                if (!imageName || !txtName) return;
+                zip.file(imageName, item.file);
                 zip.file(txtName, item.tags);
             });
             const blob = await zip.generateAsync({type:"blob"});

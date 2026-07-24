@@ -202,6 +202,9 @@ globalThis.__tagpilotTest = {
     withTriggerWord,
     withoutTriggerWord,
     isBlankOrTriggerOnly,
+    isSafeDatasetFileName,
+    normalizeDatasetImageName,
+    getDatasetTextFileName,
     updateInputPrefixLabels: typeof updateInputPrefixLabels === 'function' ? updateInputPrefixLabels : null,
     setDataset(value) { dataset = value; ensureDatasetItemIds(); },
     getDataset() { return dataset; },
@@ -217,6 +220,30 @@ function deferred() {
     });
     return { promise, resolve };
 }
+
+
+test('dataset ZIP and export names reject path traversal components', async () => {
+    const { context } = await loadTagPilot();
+    const api = context.__tagpilotTest;
+
+    assert.equal(api.isSafeDatasetFileName('safe-image.jpg'), true);
+    assert.equal(api.normalizeDatasetImageName('safe-image.jpeg'), 'safe-image.jpg');
+    assert.equal(api.getDatasetTextFileName('safe-image.jpg'), 'safe-image.txt');
+
+    for (const unsafeName of [
+        '../outside.jpg',
+        '..\\..\\outside.jpg',
+        '/tmp/outside.jpg',
+        'C:\\tmp\\outside.jpg',
+        'nested/image.jpg',
+        '\\server\\share\\outside.jpg',
+        'almost..hidden.jpg',
+    ]) {
+        assert.equal(api.isSafeDatasetFileName(unsafeName), false, unsafeName);
+        assert.equal(api.normalizeDatasetImageName(unsafeName), null, unsafeName);
+        assert.equal(api.getDatasetTextFileName(unsafeName), null, unsafeName);
+    }
+});
 
 test('batch tagging sends the custom tag prompt to the selected provider', async () => {
     const { context, elements, fetchCalls } = await loadTagPilot();
